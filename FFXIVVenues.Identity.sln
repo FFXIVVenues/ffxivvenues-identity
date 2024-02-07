@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFXIVVenues.Identity", "FFXIVVenues.Identity\FFXIVVenues.Identity.csproj", "{B56FECA5-7B8E-4589-A354-EE7F78E09FCC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B56FECA5-7B8E-4589-A354-EE7F78E09FCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B56FECA5-7B8E-4589-A354-EE7F78E09FCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B56FECA5-7B8E-4589-A354-EE7F78E09FCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B56FECA5-7B8E-4589-A354-EE7F78E09FCC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

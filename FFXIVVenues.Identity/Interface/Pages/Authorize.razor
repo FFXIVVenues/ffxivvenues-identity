@@ -1,0 +1,20 @@
+﻿@page "/authorize"
+
+<PageTitle>Authorizing...</PageTitle>
+
+<div class="wrapper">
+    <img class="logo" src="logo_subtext_1000.jpg" alt="FFXIV Venues Staff logo"/>
+    <div class="loading">
+        <Spinner /> Authorizing you...
+    </div>
+</div>
+
+@code {
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+}
