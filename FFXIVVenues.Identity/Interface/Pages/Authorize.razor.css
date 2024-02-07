@@ -1,0 +1,12 @@
+﻿/* ::deep allows for child selection. 
+   ::deep will be automatically converted to a 
+   nested element select of the top most element. 
+   .authorize-page .spinner[b-123456] */
+::deep .spinner {
+    width: 30px;
+    height: 30px;
+    vertical-align: middle;
+
+    margin-right: 15px;
+    margin-bottom: 3px;
+}

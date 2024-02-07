@@ -5,31 +5,3 @@ html, body {
     margin: 0;
     text-align: center;
 }
-
-.wrapper {
-    margin: 50px auto;
-    width: 100vw;
-    max-width: 500px;
-    
-    .logo {
-        width: 100%;
-    }
-    
-    .loading {
-        margin-top: 50px;
-        line-height: 1em;
-        vertical-align: middle;
-        
-        
-        .spinner {
-            width: 30px;
-            height: 30px;
-            vertical-align: middle;
-            
-            display: inline-block;
-            margin-right: 15px;
-            margin-bottom: 3px;
-        }
-    }
-}
-
