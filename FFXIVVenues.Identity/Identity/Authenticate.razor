@@ -1,0 +1,17 @@
+﻿@page "/authenticate"
+
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<PageTitle>Authenticating...</PageTitle>
+<div class="authenticate-page">
+    <Spinner /> Authenticating you...
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await Task.Delay(2000);
+        NavigationManager.NavigateTo("/authenticate/redirect");
+    }
+}

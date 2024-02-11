@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <UserSecretsId>76373b78-461b-4c41-8473-6e1723a9c4ab</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,6 +15,16 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Services\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Components\Spinner.razor" />
+      <AdditionalFiles Include="Layout\MainLayout.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Interface\Layout\MainLayout.razor" />
     </ItemGroup>
 
 </Project>
