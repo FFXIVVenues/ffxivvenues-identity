@@ -1,48 +1,91 @@
 ﻿@page "/connect/authorize"
 @attribute [Authorize]
 @using FFXIVVenues.Identity.Connect.Clients
+@using FFXIVVenues.Identity.Identity
 @using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
 @inject ClientManager ClientManager
+@inject NavigationManager NavigationManager
+@inject UserService UserService;
 
 @code {
+
     [SupplyParameterFromQuery(Name = "client_id")]
-    public string? ClientId { get; set; }
+    public required string ClientId { get; set; }
     [SupplyParameterFromQuery(Name = "redirect_uri")]
-    public string? RedirectUri { get; set; }
+    public required string RedirectUri { get; set; }
     [SupplyParameterFromQuery(Name = "response_type")]
-    public string? ResponseType { get; set; }
+    public required string ResponseType { get; set; }
     [SupplyParameterFromQuery(Name = "scope")]
-    public string? Scope { get; set; }
+    public required string Scope { get; set; }
     [SupplyParameterFromQuery(Name = "state")]
-    public string? State { get; set; }
+    public required string State { get; set; }
 
     private Client Client { get; set; } = null!;
     private string[]? Scopes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        if (ClientId is null)
+            NavigationManager.NavigateTo("/error");
+        if (RedirectUri is not { Length: > 0 })
+            NavigationManager.NavigateTo("/error");
+
+        var client = this.ClientManager.GetClient(ClientId);
+        if (client is null)
+            NavigationManager.NavigateTo("/error");
+        if (!client!.RedirectUris.Contains(RedirectUri))
+            NavigationManager.NavigateTo("/error");
+
+        if (ResponseType is not "code")
+        {
+            var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=unsupported_response_type" };
+            NavigationManager.NavigateTo(uri.ToString());
+        }
+
+        if (Scope is not { Length: > 0 } || State is not {Length: > 0})
+        {
+            var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=invalid_request" };
+            NavigationManager.NavigateTo(uri.ToString());
+        }
+        
         Scopes = this.Scope?.Split("+") ?? Array.Empty<string>();
-        Client = this.ClientManager.GetClient(ClientId);
+        if (Scopes.Any(s => !client.Scopes.Contains(s)))
+        {
+            var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=invalid_scope" };
+            NavigationManager.NavigateTo(uri.ToString());
+        }
+        
+        Client = client;
         await base.OnInitializedAsync();
+    }
+
+    private void OnAllowClick(MouseEventArgs _)
+    {
+        var user = UserService.GetCurrentUser();
+        var code = ClientManager.GetAuthorizationCode(ClientId, user!.Id);
+        var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&code={code}" };
+        NavigationManager.NavigateTo(uri.ToString());
+    }
+
+    private void OnCancelClick(MouseEventArgs _)
+    {
+        var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=access_denied" };
+        NavigationManager.NavigateTo(uri.ToString());
     }
 }
 
 <PageTitle>Authorize</PageTitle>
 
 <div class="authorize-page">
-    <h1>Authorizing with @Client.ClientName.</h1>
+    <h1>@Client.ClientName</h1>
     
     <table>
-        <tr><td>Client Id:</td><td>@ClientId</td></tr>
-        <tr><td>Redirect Uri:</td><td>@RedirectUri</td></tr>
-        <tr><td>Response Type:</td><td>@ResponseType</td></tr>
         <tr><td>Scopes:</td><td>@if (Scopes is not null)
             foreach (var scope in this.Scopes) { <text>@scope</text> }
         </td></tr>
-        <tr><td>State:</td><td>@State</td></tr>
     </table>
     
-    <button>Allow</button>
-    <button>Deny</button>
+    <Button OnClick="OnAllowClick">Allow</Button>
+    <Button OnClick="OnCancelClick">Cancel</Button>
 </div>

@@ -1,3 +1,3 @@
 ﻿namespace FFXIVVenues.Identity.Connect.Clients;
 
-public record Client(string ClientName, string ClientId, string ClientSecret, string[] Scopes);
+public record Client(string ClientName, string ClientId, string ClientSecret, string[] Scopes, string[] RedirectUris);
