@@ -22,7 +22,7 @@
     public required string State { get; set; }
 
     private Client Client { get; set; } = null!;
-    private string[]? Scopes { get; set; }
+    private ClientScope[]? Scopes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -31,7 +31,7 @@
         if (RedirectUri is not { Length: > 0 })
             NavigationManager.NavigateTo("/error");
 
-        var client = this.ClientManager.GetClient(ClientId);
+        var client = this.ClientManager.GetClient(ClientId!);
         if (client is null)
             NavigationManager.NavigateTo("/error");
         if (!client!.RedirectUris.Contains(RedirectUri))
@@ -49,12 +49,14 @@
             NavigationManager.NavigateTo(uri.ToString());
         }
         
-        Scopes = this.Scope?.Split("+") ?? Array.Empty<string>();
-        if (Scopes.Any(s => !client.Scopes.Contains(s)))
+        var scopesRequested = this.Scope?.Split(" ") ?? Array.Empty<string>();
+        Scopes = client.Scopes.Where(s => scopesRequested.Contains(s.Name)).ToArray();
+        if (scopesRequested.Length > Scopes.Length)
         {
             var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=invalid_scope" };
             NavigationManager.NavigateTo(uri.ToString());
         }
+
         
         Client = client;
         await base.OnInitializedAsync();
@@ -63,8 +65,8 @@
     private void OnAllowClick(MouseEventArgs _)
     {
         var user = UserService.GetCurrentUser();
-        var code = ClientManager.GetAuthorizationCode(ClientId, user!.Id);
-        var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&code={code}" };
+        var code = ClientManager.CreateAuthorizationCode(ClientId, user!.Id, RedirectUri, Scopes);
+        var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&code={code.Code}" };
         NavigationManager.NavigateTo(uri.ToString());
     }
 
@@ -78,14 +80,30 @@
 <PageTitle>Authorize</PageTitle>
 
 <div class="authorize-page">
-    <h1>@Client.ClientName</h1>
+    <heading>
+        <img src="@Client.ClientIcon" alt="Icon for @Client.ClientName}"/>
+        <h1><strong>@Client.ClientName</strong><br/> requests access to your identity</h1>
+    </heading>
     
-    <table>
-        <tr><td>Scopes:</td><td>@if (Scopes is not null)
-            foreach (var scope in this.Scopes) { <text>@scope</text> }
-        </td></tr>
-    </table>
-    
-    <Button OnClick="OnAllowClick">Allow</Button>
-    <Button OnClick="OnCancelClick">Cancel</Button>
+    @Client.ClientName requests access to:
+    <ul>
+    @foreach (var scope in this.Scopes!)
+    {
+        @if (scope.Name == "openid") continue;
+            <li>
+                <strong>@(scope.Name switch
+                        {
+                            "profile" => "Your name and avatar",
+                            "email" => "Your email address",
+                            "roles" => "Your roles"
+                        })</strong>
+                <p>@scope.Justification</p>
+            </li>
+    }
+    </ul>
+
+    <div class="response-buttons">
+        <Button OnClick="OnAllowClick">Allow</Button>
+        <Button OnClick="OnCancelClick">Cancel</Button>
+    </div>
 </div>

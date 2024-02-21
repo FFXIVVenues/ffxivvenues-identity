@@ -1,6 +1,7 @@
 ﻿/* ::deep allows for child selection. 
    ::deep will be automatically converted to a 
-   nested element select of the top most element. 
+   nested element select of the top most element
+   (so it can stay scoped to this page). 
    .authorize-page .spinner[b-123456] */
 ::deep .spinner {
     width: 30px;

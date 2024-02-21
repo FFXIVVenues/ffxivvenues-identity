@@ -27,6 +27,6 @@ public class DiscordHandler(IOptionsMonitor<DiscordOptions> options, ILoggerFact
         context.RunClaimActions();
 
         await Events.CreatingTicket(context);
-        return new AuthenticationTicket(context.Principal, context.Properties, Scheme.Name);
+        return new AuthenticationTicket(context.Principal!, context.Properties, Scheme.Name);
     }
 }

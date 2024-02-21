@@ -36,7 +36,8 @@ public class DiscoveryObject(string rootUri)
     [
         "openid",
         "profile",
-        "email", "roles"
+        "email", 
+        "roles"
     ];
 
     [JsonPropertyName("token_endpoint_auth_methods_supported")]

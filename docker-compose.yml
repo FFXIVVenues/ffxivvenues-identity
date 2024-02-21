@@ -1,0 +1,6 @@
+﻿services:
+  ffxivvenues.identity:
+    image: ffxivvenues.identity
+    build:
+      context: .
+      dockerfile: FFXIVVenues.Identity/Dockerfile

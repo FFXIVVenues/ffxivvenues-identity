@@ -1,20 +1,27 @@
 ﻿using System.Security.Claims;
+using System.Security.Principal;
 
 namespace FFXIVVenues.Identity.Identity;
 
 public class UserService(IHttpContextAccessor httpContextAccessor)
 {
-    private readonly HttpContext? _httpContext = httpContextAccessor.HttpContext;
 
+    public IIdentity? GetIdentity()
+    {
+        if (httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated != true)
+            return null;
+        return httpContextAccessor.HttpContext.User.Identity;
+    }
+    
     public User? GetCurrentUser()
     {
-        if (this._httpContext?.User.Identity?.IsAuthenticated != true)
+        if (httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated != true)
             return null;
         
         var user = new User();
         string? avatar = null;
         string? banner = null;
-        foreach (var claim in this._httpContext.User.Claims)
+        foreach (var claim in httpContextAccessor.HttpContext.User.Claims)
         {
             switch (claim.Type)
             {
@@ -54,10 +61,10 @@ public class UserService(IHttpContextAccessor httpContextAccessor)
 
 public class User
 {
-    public string Id { get; set; }
-    public string Username { get; set; }
-    public string DisplayName { get; set; }
-    public string AvatarUri { get; set; }
-    public string BannerUri { get; set; }
-    public bool Verified { get; set; }
+    public string? Id { get; set; }
+    public string? Username { get; set; }
+    public string? DisplayName { get; set; }
+    public string? AvatarUri { get; set; }
+    public string? BannerUri { get; set; }
+    public bool? Verified { get; set; }
 }
