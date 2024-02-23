@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FFXIVVenues.Identity.Identity;
+namespace FFXIVVenues.Identity.DiscordSignin;
 
 [ApiController]
 [Route("[controller]")]

@@ -1,7 +1,7 @@
 using FFXIVVenues.Identity;
-using FFXIVVenues.Identity.Connect;
-using FFXIVVenues.Identity.Connect.Clients;
-using FFXIVVenues.Identity.Identity;
+using FFXIVVenues.Identity.DiscordSignin;
+using FFXIVVenues.Identity.OIDC;
+using FFXIVVenues.Identity.OIDC.Clients;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 
@@ -16,13 +16,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddSingleton(config);
 builder.Services.AddSingleton<ClientManager>();
-builder.Services.AddSingleton<UserService>();
+builder.Services.AddSingleton<ClaimsService>();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services
-    .AddAuthentication(DiscordDefaults.AuthenticationScheme)
+    .AddAuthentication(DiscordOptions.AuthenticationScheme)
     .AddCookie()
     .AddDiscord(x => {
         x.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;

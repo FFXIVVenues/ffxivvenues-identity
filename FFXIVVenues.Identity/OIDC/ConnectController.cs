@@ -1,7 +1,7 @@
-﻿using FFXIVVenues.Identity.Connect.Clients;
+﻿using FFXIVVenues.Identity.OIDC.Clients;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FFXIVVenues.Identity.Connect;
+namespace FFXIVVenues.Identity.OIDC;
 
 [ApiController]
 [Route("[controller]")]
@@ -22,7 +22,7 @@ public class ConnectController(ClientManager _clientManager) : ControllerBase
         [FromForm(Name = "grant_type")] string grantType)
     {
         var authCode = _clientManager.ResolveAuthorizationCode(code);
-        if (authCode is null || authCode.Expiry > DateTimeOffset.Now)
+        if (authCode is null || authCode.Expiry < DateTimeOffset.Now)
             return BadRequest("Authorization code is invalid");
 
         if (authCode.ClientId != clientId)
@@ -41,7 +41,7 @@ public class ConnectController(ClientManager _clientManager) : ControllerBase
         if (grantType != "authorization_code")
             return BadRequest("Grant type is invalid");
 
-        return _clientManager.CreateTokenResponse(clientId, authCode.UserId, authCode.Scopes);
+        return _clientManager.CreateTokenResponse(clientId, clientSecret, authCode.UserId, authCode.Scopes);
     }
         
 }

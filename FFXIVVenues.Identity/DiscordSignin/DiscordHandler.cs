@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.Extensions.Options;
 
-namespace FFXIVVenues.Identity.Identity;
+namespace FFXIVVenues.Identity.DiscordSignin;
 
 public class DiscordHandler(IOptionsMonitor<DiscordOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
     : OAuthHandler<DiscordOptions>(options, logger, encoder, clock)

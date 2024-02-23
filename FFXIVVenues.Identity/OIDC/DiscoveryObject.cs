@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace FFXIVVenues.Identity.Connect;
+namespace FFXIVVenues.Identity.OIDC;
 
 public class DiscoveryObject(string rootUri)
 {
@@ -50,20 +50,17 @@ public class DiscoveryObject(string rootUri)
     [JsonPropertyName("claims_supported")]
     public string[] ClaimsSupported { get; set; } =
     [
+        "iss",
         "sub",
+        "aud",
+        "exp",
+        "iat",
         "name",
-        "family_name",
-        "given_name",
-        "middle_name",
         "nickname",
         "preferred_username",
-        "profile",
-        "picture",
-        "website",
         "email",
         "email_verified",
-        "locale",
-        "zoneinfo",
-        "updated_at"
+        "profile",
+        "picture"
     ];
 }

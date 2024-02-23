@@ -13,18 +13,18 @@ heading {
     width: max-content;
     margin-bottom: 35px;
 
-    img {
+    & img {
         width: 75px;
         height: 75px;
         margin-right: 25px;
         border-radius: 50%;
     }
 
-    h1 {
+    & h1 {
         font-size: 1.2rem;
         font-weight: normal;
 
-        strong {
+        & strong {
             font-size: 1.4em;
         }
     }
@@ -35,10 +35,10 @@ ul {
     padding: 0;
     margin: 30px 15px 30px;
 
-    li {
+    & li {
         margin: 0 0 15px 0;
 
-        p {
+        & p {
             margin: 0;
             color: #EEE;
             font-size: .9em;

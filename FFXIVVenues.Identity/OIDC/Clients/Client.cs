@@ -1,4 +1,4 @@
-﻿namespace FFXIVVenues.Identity.Connect.Clients;
+﻿namespace FFXIVVenues.Identity.OIDC.Clients;
 
 public class Client
 {

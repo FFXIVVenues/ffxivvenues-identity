@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace FFXIVVenues.Identity.Connect.Clients;
+namespace FFXIVVenues.Identity.OIDC.Clients;
 
 public record TokenResponse(
     [property: JsonPropertyName("id_token")] string IdToken,
@@ -8,5 +8,5 @@ public record TokenResponse(
     [property: JsonPropertyName("refresh_token")] string RefreshToken, 
     [property: JsonPropertyName("expires_in")] int ExpiresIn)
 {
-    public string TokenType => "Bearer";
+    [property: JsonPropertyName("token_type")] public string TokenType => "Bearer";
 }

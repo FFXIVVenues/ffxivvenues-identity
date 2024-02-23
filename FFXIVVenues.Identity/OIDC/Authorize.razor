@@ -1,12 +1,12 @@
 ﻿@page "/connect/authorize"
 @attribute [Authorize]
-@using FFXIVVenues.Identity.Connect.Clients
-@using FFXIVVenues.Identity.Identity
+@using FFXIVVenues.Identity.DiscordSignin
+@using FFXIVVenues.Identity.OIDC.Clients
 @using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
 @inject ClientManager ClientManager
 @inject NavigationManager NavigationManager
-@inject UserService UserService;
+@inject ClaimsService ClaimsService;
 
 @code {
 
@@ -26,7 +26,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (ClientId is null)
+        if (ClientId is not { Length: > 0 })
             NavigationManager.NavigateTo("/error");
         if (RedirectUri is not { Length: > 0 })
             NavigationManager.NavigateTo("/error");
@@ -57,15 +57,14 @@
             NavigationManager.NavigateTo(uri.ToString());
         }
 
-        
         Client = client;
         await base.OnInitializedAsync();
     }
 
     private void OnAllowClick(MouseEventArgs _)
     {
-        var user = UserService.GetCurrentUser();
-        var code = ClientManager.CreateAuthorizationCode(ClientId, user!.Id, RedirectUri, Scopes);
+        var userId = ClaimsService.GetClaimValue(ConnectClaims.Sub)!;
+        var code = ClientManager.CreateAuthorizationCode(ClientId, userId, RedirectUri, Scopes);
         var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&code={code.Code}" };
         NavigationManager.NavigateTo(uri.ToString());
     }
