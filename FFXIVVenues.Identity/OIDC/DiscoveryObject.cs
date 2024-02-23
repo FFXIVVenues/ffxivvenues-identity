@@ -22,8 +22,9 @@ public class DiscoveryObject(string rootUri)
     [JsonPropertyName("jwks_uri")] 
     public string? JwksUri { get; set; } = $"https://{rootUri}/connect/keys";
 
+    public static string[] ResponseTypesSupportedStatic = [ "code", "token", "id_token" ];
     [JsonPropertyName("response_types_supported")]
-    public string[] ResponseTypesSupported { get; set; } = [ "code" ];
+    public string[] ResponseTypesSupported { get; set; } = DiscoveryObject.ResponseTypesSupportedStatic;
 
     [JsonPropertyName("subject_types_supported")]
     public string[] SubjectTypesSupported { get; set; } = [ "public" ];

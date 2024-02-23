@@ -37,7 +37,9 @@
         if (!client!.RedirectUris.Contains(RedirectUri))
             NavigationManager.NavigateTo("/error");
 
-        if (ResponseType is not "code")
+        var unsupported = this.ResponseType?.Split(" ")
+            .Any(s => !DiscoveryObject.ResponseTypesSupportedStatic.Contains(s));
+        if (ResponseType is not { Length: > 0 } || unsupported is true)
         {
             var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=unsupported_response_type" };
             NavigationManager.NavigateTo(uri.ToString());

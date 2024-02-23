@@ -9,10 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Services\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <AdditionalFiles Include="Components\Spinner.razor" />
       <AdditionalFiles Include="Layout\MainLayout.razor" />
     </ItemGroup>

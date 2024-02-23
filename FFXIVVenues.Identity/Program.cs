@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 
 var config = new ConfigurationBuilder()
-    .AddEnvironmentVariables("FFXIVVENUES_IDENTITY:")
+    .AddEnvironmentVariables("FFXIVVENUES_IDENTITY__")
     .AddUserSecrets<Program>()
     .AddCommandLine(args)
     .Build();
