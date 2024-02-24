@@ -5,7 +5,7 @@ namespace FFXIVVenues.Identity.DiscordSignin;
 
 [ApiController]
 [Route("[controller]")]
-public class IdentityController : ControllerBase
+public class DiscordRedirectController : ControllerBase
 {
     [Authorize]
     [HttpGet("/authenticate/redirect")]

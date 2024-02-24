@@ -14,5 +14,5 @@ public static class DiscordAuthenticationExtensions
         => builder.AddDiscord(authenticationScheme, DiscordOptions.DisplayName, configureOptions);
 
     public static AuthenticationBuilder AddDiscord(this AuthenticationBuilder builder, string authenticationScheme, string displayName, Action<DiscordOptions> configureOptions)
-        => builder.AddOAuth<DiscordOptions, DiscordHandler>(authenticationScheme, displayName, configureOptions);
+        => builder.AddOAuth<DiscordOptions, DiscordCallbackHandler>(authenticationScheme, displayName, configureOptions);
 }

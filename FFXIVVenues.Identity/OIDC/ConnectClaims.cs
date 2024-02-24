@@ -12,6 +12,7 @@ public static class ConnectClaims
     public const string Nickname = "nickname";
     public const string PreferredUsername = "preferred_username";
     public const string Email = "email";
+    public const string MfaEnabled = "mfa_enabled";
     public const string EmailVerified = "email_verified";
     public const string Profile = "profile";
     public const string Picture = "picture";

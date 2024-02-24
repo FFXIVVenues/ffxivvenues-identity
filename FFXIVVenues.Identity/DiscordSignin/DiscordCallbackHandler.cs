@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Security.Authentication;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace FFXIVVenues.Identity.DiscordSignin;
 
-public class DiscordHandler(IOptionsMonitor<DiscordOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
+public class DiscordCallbackHandler(DiscordManager discordManager, IOptionsMonitor<DiscordOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
     : OAuthHandler<DiscordOptions>(options, logger, encoder, clock)
 {
     protected override async Task<AuthenticationTicket> CreateTicketAsync(ClaimsIdentity identity, AuthenticationProperties properties, OAuthTokenResponse tokens)
@@ -23,6 +24,22 @@ public class DiscordHandler(IOptionsMonitor<DiscordOptions> options, ILoggerFact
 
         var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
 
+
+        var userIdStr = payload.GetString("id");
+        if (userIdStr is not { Length: > 0})
+            throw new HttpRequestException($"Failed to retrieve Discord user information (no user Id in response).");
+
+        if (!long.TryParse(userIdStr, out var userId))
+            throw new HttpRequestException($"Failed to retrieve Discord user information (user Id not parsable).");
+
+        if (!int.TryParse(tokens.ExpiresIn, out var expiresIn))
+            throw new HttpRequestException($"Failed to retrieve Discord user information (expiresIn not parsable).");
+
+        if (tokens.AccessToken is null || tokens.RefreshToken is null)
+            throw new AuthenticationException("Could not authenticate with Discord (Access Token or Refresh Token is missing).");
+        
+        await discordManager.StoreDiscordTokensAsync(userId, tokens.AccessToken, tokens.RefreshToken, expiresIn);
+            
         var context = new OAuthCreatingTicketContext(new ClaimsPrincipal(identity), properties, Context, Scheme, Options, Backchannel, tokens, payload);
         context.RunClaimActions();
 

@@ -5,21 +5,26 @@ services:
     container_name: FFXIVVenues.Identity
     image: ffxivvenues/ffxivvenues.identity:latest
     restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "8081:8081"
     depends_on:
       - postgres
     networks:
       - FFXIVVenues.Network
       - FFXIVVenues.Identity.Network
     environment:
-      - FFXIVVENUES_IDENTITY__CONNECTION_STRING=postgresql://postgres:${POSTGRES_PASSWORD}@FFXIVVenues.Identity.Postgres/ffxivvenues
+      - FFXIVVENUES_IDENTITY__ConnectionStrings__Identity=Host=FFXIVVenues.Identity.Postgres;Port=5432;Username=postgres;Password=${POSTGRES_PASSWORD};Database=identity
 
   postgres:
     container_name: FFXIVVenues.Identity.Postgres
     image: postgres
+#    ports:
+#      - "5432:5432"
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_USER=postgres
-      - POSTGRES_DB=ffxivvenues
+      - POSTGRES_DB=identity
     volumes:
       - FFXIVVenues.Identity.Postgres.Volume:/var/lib/postgresql/data
 
