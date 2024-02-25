@@ -48,8 +48,8 @@ public class ConnectController(ClientManager clientManager) : ControllerBase
         if (! client.RedirectUris.Contains(redirectUri))
             return Unauthorized("Redirect URI is invalid");
         
-        var idToken = clientManager.GenerateIdToken(clientId, clientSecret);
         var accessToken = await clientManager.CreateAccessTokenAsync(clientId, authCode.UserId, authCode.Scopes);
+        var idToken = clientManager.GenerateIdToken(clientId, clientSecret, authCode.Scopes);
         return new TokenResponse(idToken, accessToken.AccessToken, accessToken.RefreshToken, (accessToken.Expiry - DateTimeOffset.UtcNow).Seconds);
     }
 

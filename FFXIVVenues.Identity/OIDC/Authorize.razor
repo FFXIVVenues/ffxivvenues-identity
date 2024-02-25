@@ -22,19 +22,20 @@
 
     private Client Client { get; set; } = null!;
     private ClientScope[]? Scopes { get; set; }
+    private long UserId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         if (ClientId is not { Length: > 0 })
-            NavigationManager.NavigateTo("/error");
+            NavigationManager.NavigateTo("/error?msgkey=invalid_client");
         if (RedirectUri is not { Length: > 0 })
-            NavigationManager.NavigateTo("/error");
+            NavigationManager.NavigateTo("/error?msgkey=invalid_redirect");
 
         var client = this.ClientManager.GetClient(ClientId!);
         if (client is null)
-            NavigationManager.NavigateTo("/error");
+            NavigationManager.NavigateTo("/error?msgkey=invalid_client");
         if (!client!.RedirectUris.Contains(RedirectUri))
-            NavigationManager.NavigateTo("/error");
+            NavigationManager.NavigateTo("/error?msgkey=invalid_redirect");
 
         var unsupported = this.ResponseType?.Split(" ")
             .Any(s => !DiscoveryObject.ResponseTypesSupportedStatic.Contains(s));
@@ -58,15 +59,23 @@
             NavigationManager.NavigateTo(uri.ToString());
         }
 
+        var userId = ClaimsIdentityManager.GetClaimValue(ConnectClaims.Sub)!;
+        if (long.TryParse(userId, out var userIdLong))
+            UserId = userIdLong;
+        else 
+            NavigationManager.NavigateTo("/error");
+        
+        var canAccessClient = await this.ClientManager.CanAccessClientAsync(ClientId, this.UserId);
+        if (!canAccessClient)
+            NavigationManager.NavigateTo("/error?msgkey=client_denied_user");
+            
         Client = client;
         await base.OnInitializedAsync();
     }
 
     private void OnAllowClick(MouseEventArgs _)
     {
-        var userId = ClaimsIdentityManager.GetClaimValue(ConnectClaims.Sub)!;
-        long.TryParse(userId, out var userIdLong);
-        var code = ClientManager.CreateAuthorizationCode(ClientId, userIdLong, RedirectUri, Scopes);
+        var code = ClientManager.CreateAuthorizationCode(ClientId, UserId, RedirectUri, Scopes);
         var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&code={code.Code}" };
         NavigationManager.NavigateTo(uri.ToString());
     }
@@ -91,15 +100,15 @@
     @foreach (var scope in this.Scopes!)
     {
         @if (scope.Name == "openid") continue;
-            <li>
-                <strong>@(scope.Name switch
-                        {
-                            "profile" => "Your name and avatar",
-                            "email" => "Your email address",
-                            "roles" => "Your roles"
-                        })</strong>
-                <p>@scope.Justification</p>
-            </li>
+        <li>
+            <strong>@(scope.Name switch
+                    {
+                        "profile" => "Your name and avatar",
+                        "email" => "Your email address",
+                        "roles" => "Your roles"
+                    })</strong>
+            <p>@scope.Justification</p>
+        </li>
     }
     </ul>
 

@@ -85,6 +85,32 @@ public class DiscordManager(IConfiguration config, IdentityDbContext db, HttpCli
             claimAction.Run(payload, claimsIdentity, "id.ffxivvenues.com");
         return claimsIdentity.Claims.ToArray();
     }
+
+    public async Task<long[]> GetGuildsForUserAsync(long userId)
+    {
+        var discordToken = await GetDiscordTokenAsync(userId);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://discordapp.com/api/users/@me/guilds");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", discordToken?.AccessToken);
+        var response = await httpClient.SendAsync(request);
+        var guilds = await response.Content.ReadFromJsonAsync<List<Guild>>();
+        return guilds?
+            .Select(g => long.TryParse(g.Id, out var id) ? id : 0)
+            .Where(c => c is not 0).ToArray() 
+               ?? Array.Empty<long>();
+    }
+
+    public async Task<long[]> GetRolesForUserInGuildAsync(long userId, long guildId)
+    {
+        var discordToken = await GetDiscordTokenAsync(userId);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"https://discordapp.com/api/users/@me/guilds/{guildId}/member");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", discordToken?.AccessToken);
+        var response = await httpClient.SendAsync(request);
+        var guildMember = await response.Content.ReadFromJsonAsync<GuildMember>();
+        return guildMember?.Roles ?? Array.Empty<long>();
+    }
 }
 
 internal class RefreshException(string message) : Exception(message);
+
+internal record Guild(string Id);
+internal record GuildMember(long[] Roles);

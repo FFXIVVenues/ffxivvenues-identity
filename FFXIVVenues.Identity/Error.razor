@@ -1,5 +1,6 @@
 ﻿@page "/error"
 @using System.Diagnostics
+@using Microsoft.AspNetCore.Mvc
 
 <PageTitle>Error</PageTitle>
 
@@ -13,8 +14,23 @@
     </p>
 }
 
+@if (MessageKey is not null && ErrorMessages.TryGetValue(MessageKey, out var message))
+{
+    <p>
+        @message
+    </p>
+}
+
 @code{
+
+    private static Dictionary<string, string> ErrorMessages { get; set; } = new()
+    {
+        { "client_denied_user", "You do not have the required discord roles to access this service." },
+        { "invalid_client", "There was an issue with the details given by the service you're attempting to login to (client_id not provided or does not match any known client)." },
+        { "invalid_redirect", "There was an issue with the details given by the service you're attempting to login to (redirect_uri not provided or does not match any known redirect URIs for the client)." }
+    };
     [CascadingParameter] private HttpContext? HttpContext { get; set; }
+    [FromQuery(Name = "msgkey")] private string MessageKey { get; set; }
 
     private string? RequestId { get; set; }
     private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);

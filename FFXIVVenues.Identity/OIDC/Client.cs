@@ -15,16 +15,16 @@ public class Client
 public class AccessControl
 {
     public bool DefaultAccess { get; set; }
-    public AllowFromGuilds[] AllowFromGuilds { get; set; }
-    public long[] AllowFromIds { get; set; }
-    public long[] DenyFromIds { get; set; }
+    public AllowFromGuilds[] AllowFromGuilds { get; set; } = [];
+    public long[] AllowFromIds { get; set; } = [];
+    public long[] DenyFromIds { get; set; } = [];
 }
 
 public class AllowFromGuilds
 {
     public long GuildId { get; set; }
-    public long[] AnyOfRoles { get; set; }
-    public long[] AllOfRoles { get; set; }
+    public long[] AnyOfRoles { get; set; } = [];
+    public long[] AllOfRoles { get; set; } = [];
 }
 
 public record ClientScope(string Name, string Justification);
