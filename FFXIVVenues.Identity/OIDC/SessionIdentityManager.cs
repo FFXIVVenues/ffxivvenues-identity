@@ -9,7 +9,7 @@ namespace FFXIVVenues.Identity.OIDC;
 /// via the IdToken in Service to Service calls. 
 /// </summary>
 /// <param name="httpContextAccessor"></param>
-public class ClaimsIdentityManager(IHttpContextAccessor httpContextAccessor)
+public class SessionIdentityManager(IHttpContextAccessor httpContextAccessor)
 {
 
     public IIdentity? GetIdentity()

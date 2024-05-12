@@ -1,14 +1,14 @@
 ﻿@page "/connect/authorize"
-@attribute [Authorize]
-@using FFXIVVenues.Identity.DiscordSignin
 @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @rendermode InteractiveServer
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @inject ClientManager ClientManager
 @inject NavigationManager NavigationManager
-@inject ClaimsIdentityManager ClaimsIdentityManager;
+@inject SessionIdentityManager SessionIdentityManager;
 
 @code {
-
+    
     [SupplyParameterFromQuery(Name = "client_id")]
     public required string ClientId { get; set; }
     [SupplyParameterFromQuery(Name = "redirect_uri")]
@@ -30,13 +30,13 @@
             NavigationManager.NavigateTo("/error?msgkey=invalid_client");
         if (RedirectUri is not { Length: > 0 })
             NavigationManager.NavigateTo("/error?msgkey=invalid_redirect");
-
+        
         var client = this.ClientManager.GetClient(ClientId!);
         if (client is null)
             NavigationManager.NavigateTo("/error?msgkey=invalid_client");
         if (!client!.RedirectUris.Contains(RedirectUri))
             NavigationManager.NavigateTo("/error?msgkey=invalid_redirect");
-
+        
         var unsupported = this.ResponseType?.Split(" ")
             .Any(s => !DiscoveryObject.ResponseTypesSupportedStatic.Contains(s));
         if (ResponseType is not { Length: > 0 } || unsupported is true)
@@ -44,22 +44,22 @@
             var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=unsupported_response_type" };
             NavigationManager.NavigateTo(uri.ToString());
         }
-
+        
         if (Scope is not { Length: > 0 } || State is not {Length: > 0})
         {
             var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=invalid_request" };
             NavigationManager.NavigateTo(uri.ToString());
         }
         
-        var scopesRequested = this.Scope?.Split(" ") ?? Array.Empty<string>();
+        var scopesRequested = Scope?.Split(" ") ?? Array.Empty<string>();
         Scopes = client.Scopes.Where(s => scopesRequested.Contains(s.Name)).ToArray();
         if (scopesRequested.Length > Scopes.Length)
         {
             var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=invalid_scope" };
             NavigationManager.NavigateTo(uri.ToString());
         }
-
-        var userId = ClaimsIdentityManager.GetClaimValue(ConnectClaims.Sub)!;
+        
+        var userId = SessionIdentityManager.GetClaimValue(ConnectClaims.Sub)!;
         if (long.TryParse(userId, out var userIdLong))
             UserId = userIdLong;
         else 
@@ -70,7 +70,6 @@
             NavigationManager.NavigateTo("/error?msgkey=client_denied_user");
             
         Client = client;
-        await base.OnInitializedAsync();
     }
 
     private void OnAllowClick(MouseEventArgs _)
@@ -89,6 +88,8 @@
 
 <PageTitle>Authorize</PageTitle>
 
+@if (Client is not null)
+{
 <div class="authorize-page">
     <heading>
         <img src="@Client.ClientIcon" alt="Icon for @Client.ClientName}"/>
@@ -99,14 +100,17 @@
     <ul>
     @foreach (var scope in this.Scopes!)
     {
-        @if (scope.Name == "openid") continue;
-        <li>
-            <strong>@(scope.Name switch
-                    {
-                        "profile" => "Your name and avatar",
-                        "email" => "Your email address",
-                        "roles" => "Your roles"
-                    })</strong>
+        <li> 
+            <strong>
+                @(scope.Name switch
+                     {
+                         "openid" => "Your discord user id",
+                         "profile" => "Your name and avatar",
+                         "email" => "Your email address",
+                         "roles" => "Your roles"
+                     }
+                )
+            </strong>
             <p>@scope.Justification</p>
         </li>
     }
@@ -117,3 +121,8 @@
         <Button OnClick="OnCancelClick">Cancel</Button>
     </div>
 </div>
+}
+else
+{
+    <Spinner />
+}

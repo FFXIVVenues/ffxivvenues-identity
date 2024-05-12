@@ -1,0 +1,7 @@
+.error-page {
+    width: 420px;
+    margin: 0 auto;
+    border: solid 1px #222;
+    border-radius: 10px;
+    padding: 10px 30px;
+}

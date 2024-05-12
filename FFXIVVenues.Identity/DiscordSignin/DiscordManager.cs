@@ -4,10 +4,11 @@ using System.Text.Json;
 using FFXIVVenues.Identity.Models;
 using FFXIVVenues.Identity.OIDC;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FFXIVVenues.Identity.DiscordSignin;
 
-public class DiscordManager(IConfiguration config, IdentityDbContext db, HttpClient httpClient, DiscordOptions discordOptions)
+public class DiscordManager(IConfiguration config, IdentityDbContext db, HttpClient httpClient, DiscordOptions discordOptions, IMemoryCache memoryCache)
 {
     private string _discordClientId = config.GetValue<string>("Discord:ClientId");
     private string _discordClientSecret = config.GetValue<string>("Discord:ClientSecret");
@@ -24,6 +25,9 @@ public class DiscordManager(IConfiguration config, IdentityDbContext db, HttpCli
             Expiry = expiry
         };
 
+        var existingKey = await db.DiscordTokens.FindAsync(userId);
+        if (existingKey is not null)
+            db.DiscordTokens.Remove(existingKey);
         await db.DiscordTokens.AddAsync(discordToken);
         await db.SaveChangesAsync();
     }
@@ -49,7 +53,7 @@ public class DiscordManager(IConfiguration config, IdentityDbContext db, HttpCli
         var apiResponse =
             await httpClient.PostAsync(DiscordOptions.TokenEndpointUri, new FormUrlEncodedContent(formValues));
 
-        if (!apiResponse.IsSuccessStatusCode)
+        if ( ! apiResponse.IsSuccessStatusCode)
             throw new RefreshException("Call to refresh Discord Access Token failed");
         var tokenResponse = await apiResponse.Content.ReadFromJsonAsync<TokenResponse>();
         if (tokenResponse == null)
@@ -71,43 +75,49 @@ public class DiscordManager(IConfiguration config, IdentityDbContext db, HttpCli
         return newToken;
     }
 
-    public async Task<Claim[]> GetAllClaimsAsync(long userId)
-    {
-        var discordToken = await this.GetDiscordTokenAsync(userId);
-        var request = new HttpRequestMessage(HttpMethod.Get, discordOptions.UserInformationEndpoint);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", discordToken?.AccessToken);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    public Task<Claim[]> GetAllClaimsAsync(long userId) =>
+        memoryCache.GetOrCreateAsync<Claim[]>($"claims_{userId}", async entry =>
+        {
+            var discordToken = await this.GetDiscordTokenAsync(userId);
+            var request = new HttpRequestMessage(HttpMethod.Get, discordOptions.UserInformationEndpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", discordToken?.AccessToken);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-        var response = await httpClient.SendAsync(request);
-        var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
-        var claimsIdentity = new ClaimsIdentity();
-        foreach (var claimAction in discordOptions.ClaimActions)
-            claimAction.Run(payload, claimsIdentity, "id.ffxivvenues.com");
-        return claimsIdentity.Claims.ToArray();
-    }
+            var response = await httpClient.SendAsync(request);
+            var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
+            var claimsIdentity = new ClaimsIdentity();
+            foreach (var claimAction in discordOptions.ClaimActions)
+                claimAction.Run(payload, claimsIdentity, "id.ffxivvenues.com");
+            return claimsIdentity.Claims.ToArray();
+        })!;
 
-    public async Task<long[]> GetGuildsForUserAsync(long userId)
-    {
-        var discordToken = await GetDiscordTokenAsync(userId);
-        var request = new HttpRequestMessage(HttpMethod.Get, "https://discordapp.com/api/users/@me/guilds");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", discordToken?.AccessToken);
-        var response = await httpClient.SendAsync(request);
-        var guilds = await response.Content.ReadFromJsonAsync<List<Guild>>();
-        return guilds?
-            .Select(g => long.TryParse(g.Id, out var id) ? id : 0)
-            .Where(c => c is not 0).ToArray() 
-               ?? Array.Empty<long>();
-    }
+    public Task<long[]> GetGuildsForUserAsync(long userId) =>
+        memoryCache.GetOrCreateAsync<long[]>($"guilds_{userId}", async entry =>
+        {
+            var discordToken = await GetDiscordTokenAsync(userId);
+            var request = new HttpRequestMessage(HttpMethod.Get, "https://discordapp.com/api/users/@me/guilds");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", discordToken?.AccessToken);
+            var response = await httpClient.SendAsync(request);
+            var guilds = await response.Content.ReadFromJsonAsync<List<Guild>>();
+            entry.SetSlidingExpiration(TimeSpan.FromMinutes(3));
+            return guilds?
+                       .Select(g => long.TryParse(g.Id, out var id) ? id : 0)
+                       .Where(c => c is not 0).ToArray() 
+                   ?? [];
+        })!;
 
-    public async Task<long[]> GetRolesForUserInGuildAsync(long userId, long guildId)
-    {
-        var discordToken = await GetDiscordTokenAsync(userId);
-        var request = new HttpRequestMessage(HttpMethod.Get, $"https://discordapp.com/api/users/@me/guilds/{guildId}/member");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", discordToken?.AccessToken);
-        var response = await httpClient.SendAsync(request);
-        var guildMember = await response.Content.ReadFromJsonAsync<GuildMember>();
-        return guildMember?.Roles ?? Array.Empty<long>();
-    }
+    public Task<long[]> GetRolesForUserInGuildAsync(long userId, long guildId) =>
+        memoryCache.GetOrCreateAsync<long[]>($"guild-roles_{userId}", async entry =>
+        {
+            var discordToken = await GetDiscordTokenAsync(userId);
+            var request = new HttpRequestMessage(HttpMethod.Get, $"https://discordapp.com/api/users/@me/guilds/{guildId}/member");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", discordToken?.AccessToken);
+            var response = await httpClient.SendAsync(request);
+            var guildMember = await response.Content.ReadFromJsonAsync<GuildMember>();
+            entry.SetSlidingExpiration(TimeSpan.FromMinutes(3));
+            return guildMember?.Roles ?? [];
+        })!;
+    
 }
 
 internal class RefreshException(string message) : Exception(message);

@@ -4,6 +4,8 @@ using FFXIVVenues.Identity.Models;
 using FFXIVVenues.Identity.OIDC;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Events;
 
 var config = new ConfigurationBuilder()
     .AddEnvironmentVariables("FFXIVVENUES_IDENTITY__")
@@ -11,18 +13,24 @@ var config = new ConfigurationBuilder()
     .AddCommandLine(args)
     .Build();
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Is(config.GetValue<LogEventLevel>("Logging:MinimumLevel"))
+    .Enrich.WithProperty("InstanceId", Guid.NewGuid().ToString("n"))
+    .CreateLogger();
 
-// Add services to the container.
+var builder = WebApplication.CreateBuilder(args);
+builder.Logging.AddSerilog();
 builder.Services.AddSingleton(config);
 builder.Services.AddSingleton<ClientManager>();
-builder.Services.AddSingleton<ClaimsIdentityManager>();
+builder.Services.AddSingleton<SessionIdentityManager>();
 builder.Services.AddSingleton<DiscordManager>();
 builder.Services.AddSingleton<DiscordOptions>();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 builder.Services.AddDbContext<IdentityDbContext>(ServiceLifetime.Singleton);
 builder.Services
     .AddAuthentication(DiscordOptions.AuthenticationScheme)
@@ -32,23 +40,23 @@ builder.Services
         x.ClientId = config.GetValue<string>("Discord:ClientId")!;
         x.ClientSecret = config.GetValue<string>("Discord:ClientSecret")!;
         var scopes = config.GetSection("Discord:Scopes").Get<string[]>();
-        if (scopes is not null) foreach (var scope in scopes) x.Scope.Add(scope);
+        if (scopes is not null) x.WithClaims(scopes);
+        var prompt = config.GetValue<string>("Discord:Prompt");
+        if (prompt is not null) x.WithPrompt(prompt);
     });
+
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    app.UseHsts();
-}
+// if (!app.Environment.IsDevelopment())
+// {
+//     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+//     app.UseHsts();
+// }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
-app.MapGet("/", (HttpContext c, IdentityDbContext db) => 
-    db.DiscordTokens);
-
 app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

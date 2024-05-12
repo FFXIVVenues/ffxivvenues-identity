@@ -1,17 +1,18 @@
 ﻿using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using FFXIVVenues.Identity.DiscordSignin;
 using FFXIVVenues.Identity.Helpers;
 using FFXIVVenues.Identity.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 namespace FFXIVVenues.Identity.OIDC;
 
-public class ClientManager(IConfigurationRoot config, DiscordManager discordManager, IHttpContextAccessor httpContextAccessor, ClaimsIdentityManager claimsIdentityManager, IdentityDbContext db)
+public class ClientManager(IConfigurationRoot config, DiscordManager discordManager, IdentityDbContext db)
 {
     private static readonly TimeSpan AuthCodeExpiry = TimeSpan.FromSeconds(15);
 
@@ -41,20 +42,24 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
     public AuthorizationCode? ResolveAuthorizationCode(string code) =>
         this._authStore.TryRemove(code, out var authCode) ? authCode : null;
 
-    public string GenerateIdToken(string clientId, string clientSecret, string[] scopes)
+    public string GenerateIdToken(string clientId, Claim[] claims)
     {
-        var symmetricKeyBytes = Encoding.UTF8.GetBytes(clientSecret);
-        var keyObj = new SymmetricSecurityKey(symmetricKeyBytes);
+        var key = config.GetValue<string>("Signing:Private");
+        var rsaProvider = new RSACryptoServiceProvider();
+        rsaProvider.ImportFromPem(key);
+
+        var keyObj = new RsaSecurityKey(rsaProvider);
 
         const string issuer = "id.ffxivvenues.com";
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(180);
 
-        var claims = claimsIdentityManager.GetAllClaims();
-        claims = FilterClaimsToScopes(scopes, claims);
         var payload = new JwtPayload(issuer, clientId, claims, now, expires, now);
-        var header = new JwtHeader(new SigningCredentials(keyObj, SecurityAlgorithms.HmacSha256));
+
+        // Use RSA SHA256 for signing credentials
+        var header = new JwtHeader(new SigningCredentials(keyObj, SecurityAlgorithms.RsaSha256));
         var idToken = new JwtSecurityToken(header, payload);
+
         var handler = new JwtSecurityTokenHandler();
         return handler.WriteToken(idToken);
     }
@@ -124,32 +129,43 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
 
         if (client.AccessControl.DenyFromIds.Contains(userId))
             return false;
+
+        if (client.AccessControl.DefaultAccess)
+            return true;
         
         if (client.AccessControl.AllowFromIds.Contains(userId))
             return true;
 
-        var guilds = await discordManager.GetGuildsForUserAsync(userId);
-        foreach (var guild in client.AccessControl.AllowFromGuilds)
+        try
         {
-            if (!guilds.Contains(guild.GuildId))
-                continue;
+            var guilds = await discordManager.GetGuildsForUserAsync(userId);
+            foreach (var guild in client.AccessControl.AllowFromGuilds)
+            {
+                if (!guilds.Contains(guild.GuildId))
+                    continue;
 
-            var hasRequiredRoles = guild.AllOfRoles is { Length: > 0 };
-            var hasSingularRoles = guild.AnyOfRoles is { Length: > 0 };
-            if (!hasRequiredRoles && !hasSingularRoles)
+                var hasRequiredRoles = guild.AllOfRoles is { Length: > 0 };
+                var hasSingularRoles = guild.AnyOfRoles is { Length: > 0 };
+                if (!hasRequiredRoles && !hasSingularRoles)
+                    return true;
+
+                var usersRoles = await discordManager.GetRolesForUserInGuildAsync(userId, guild.GuildId);
+                var hasAllRequiredRoles = !hasRequiredRoles || guild.AllOfRoles.All(role => usersRoles.Contains(role));
+                var hasAnySingleRole = !hasSingularRoles || guild.AnyOfRoles.Any(role => usersRoles.Contains(role));
+
+                if (hasAllRequiredRoles is false)
+                    continue;
+
+                if (hasAnySingleRole is false)
+                    continue;
+
                 return true;
-            
-            var usersRoles = await discordManager.GetRolesForUserInGuildAsync(userId, guild.GuildId);
-            var hasAllRequiredRoles = !hasRequiredRoles || guild.AllOfRoles.All(role => usersRoles.Contains(role));
-            var hasAnySingleRole = !hasSingularRoles || guild.AnyOfRoles.Any(role => usersRoles.Contains(role));
-            
-            if (hasAllRequiredRoles is false) 
-                continue;
-
-            if (hasAnySingleRole is false)
-                continue;
-            
-            return true;
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Could not query roles for user");
+            return false;
         }
 
         return client.AccessControl.DefaultAccess;

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FFXIVVenues.Identity.OIDC;
 
 public class UserController(
-    ClaimsIdentityManager claimsIdentityManager,
+    SessionIdentityManager sessionIdentityManager,
     ClientManager clientManager,
     DiscordManager discordManager) : ControllerBase
 {
@@ -16,7 +16,7 @@ public class UserController(
     [HttpPost("/@me")]
     public async Task<ActionResult<JsonObject>> Me()
     {
-        var claims = claimsIdentityManager.GetAllClaims();
+        var claims = sessionIdentityManager.GetAllClaims();
         if (claims is not null)
             return this.ClaimsToObject(claims);
         
@@ -28,7 +28,7 @@ public class UserController(
             return Unauthorized();
         
         var verifiedToken = await clientManager.GetAccessTokenAsync(accessToken);
-        if (verifiedToken is null || verifiedToken.Expiry > DateTimeOffset.UtcNow)
+        if (verifiedToken is null || verifiedToken.Expiry < DateTimeOffset.UtcNow)
             return Unauthorized();
 
         claims = await discordManager.GetAllClaimsAsync(verifiedToken.UserId);
