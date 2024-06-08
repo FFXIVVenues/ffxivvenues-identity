@@ -8,7 +8,7 @@ using Serilog;
 using Serilog.Events;
 
 var config = new ConfigurationBuilder()
-    .AddEnvironmentVariables("FFXIVVENUES_IDENTITY__")
+    .AddEnvironmentVariables("FFXIVVENUES_IDENTITY:")
     .AddUserSecrets<Program>()
     .AddCommandLine(args)
     .Build();
