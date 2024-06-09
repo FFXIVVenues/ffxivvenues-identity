@@ -49,7 +49,7 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
         if (client is null)
             return Unauthorized("Client ID is invalid");
 
-        if (clientSecret is not null && clientSecret == client.ClientSecret)
+        if (clientSecret is not null && clientSecret != client.ClientSecret)
             return Unauthorized("Client secret is invalid");
         
         if (! client.RedirectUris.Contains(redirectUri))
@@ -88,8 +88,8 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
     [HttpGet("/connect/keys")]
     public ActionResult<JsonWebKeySet> Keys()
     {
-        var publicKey = config.GetValue<string>("Signing:Public");
-
+        var publicKeyPath = config.GetValue<string>("Signing:PublicKeyPath", "config/public.pub")!;
+        var publicKey = System.IO.File.ReadAllText(publicKeyPath);
         if (publicKey is null)
             return new JsonWebKeySet([]);
 

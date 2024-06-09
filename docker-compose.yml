@@ -12,13 +12,20 @@ services:
     networks:
       - public
       - network
+    volumes:
+      - ./config:/app/config
     environment:
-      - FFXIVVENUES_IDENTITY__ConnectionStrings__Identity=Host=FFXIVVenues.Identity.Postgres;Port=5432;Username=postgres;Password=${POSTGRES_PASSWORD};Database=identity
+      - FFXIVVENUES_IDENTITY__CONNECTIONSTRINGS__IDENTITY=Host=postgres;Port=5432;Username=postgres;Password=${POSTGRES_PASSWORD};Database=identity
+      - FFXIVVENUES_IDENTITY__DISCORD__CLIENTID=${DISCORD_CLIENTID}
+      - FFXIVVENUES_IDENTITY__DISCORD__CLIENTSECRET=${DISCORD_CLIENTSECRET}
+      - FFXIVVENUES_IDENTITY__DISCORD__SCOPES=identify,email,guilds,guilds.members.read
+      - FFXIVVENUES_IDENTITY__DISCORD__PROMPT=none
+      - FFXIVVENUES_IDENTITY__CLIENTS__CONFIGSPATH=/app/config/
+      - FFXIVVENUES_IDENTITY__SIGNING__PRIVATEKEYPATH=/app/config/private.pem
+      - FFXIVVENUES_IDENTITY__SIGNING__PUBLICKEYPATH=/app/config/public.pub
 
   postgres:
     image: postgres
-#    ports:
-#      - "5432:5432"
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_USER=postgres

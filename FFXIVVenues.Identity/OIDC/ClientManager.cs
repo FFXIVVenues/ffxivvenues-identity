@@ -3,6 +3,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using FFXIVVenues.Identity.DiscordSignin;
 using FFXIVVenues.Identity.Helpers;
 using FFXIVVenues.Identity.Models;
@@ -24,7 +26,14 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
         { "roles", [] },
     };
     
-    private readonly Client[] _clients = config.GetSection("Clients").GetChildren().Select(x => x.Get<Client>()!).ToArray();
+    private readonly Client[] _clients = 
+        Directory.EnumerateFiles(config.GetValue("Clients:ConfigsPath", "config/")!, "*.client")
+        .AsParallel()
+        .Select(File.ReadAllText)
+        .Select(x => JsonSerializer.Deserialize<Client>(x))
+        .Where(x => x is not null)
+        .ToArray()!;
+    
     private readonly ConcurrentDictionary<string, AuthorizationCode> _authStore = new();
 
     public Client? GetClient(string clientId) =>
@@ -44,7 +53,8 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
 
     public string GenerateIdToken(string clientId, Claim[] claims)
     {
-        var key = config.GetValue<string>("Signing:Private");
+        var keyPath = config.GetValue("Signing:PrivateKeyPath", "config/private.pem");
+        var key = File.ReadAllText(keyPath);
         var rsaProvider = new RSACryptoServiceProvider();
         rsaProvider.ImportFromPem(key);
 
