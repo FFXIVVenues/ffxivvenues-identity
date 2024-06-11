@@ -19,6 +19,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddConfiguration(config);
 builder.Logging.AddSerilog();
 builder.Services.AddSingleton(config);
 builder.Services.AddSingleton<ClientManager>();
