@@ -1,7 +1,9 @@
 ﻿using System.Security.Claims;
+using System.Web;
 using FFXIVVenues.Identity.OIDC;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace FFXIVVenues.Identity.DiscordSignin;
 
@@ -31,6 +33,31 @@ public class DiscordOptions : OAuthOptions
             $"https://id.ffxivvenues.com/profile");
         ClaimActions.MapCustomJson(ConnectClaims.Picture, ClaimValueTypes.String, e =>
             $"https://cdn.discordapp.com/avatars/{e.GetString("id")}/{e.GetString("avatar")}.jpg");
+
+        this.Events.OnRedirectToAuthorizationEndpoint += OnEventsOnRedirectToAuthorizationEndpoint;
+    }
+
+    private Task OnEventsOnRedirectToAuthorizationEndpoint(RedirectContext<OAuthOptions> context)
+    {
+        // Ensure redirect url is always HTTPS to protect the
+        // authorisation code until PKCE. This is necessary here
+        // authorisation code until PKCE. This is necessary here
+        // as HTTPS may be configured at the load balancer.
+
+        var builder = new UriBuilder(context.RedirectUri);
+        var queryString = QueryHelpers.ParseQuery(builder.Query);
+        var redirectUriExists = queryString.TryGetValue("redirect_uri", out var redirectUriStr);
+        if (redirectUriExists)
+        {
+            var redirectUri = new UriBuilder(redirectUriStr!);
+            redirectUri.Scheme = "https";
+            redirectUri.Port = -1;
+            queryString["redirect_uri"] = redirectUri.ToString();
+            builder.Query = QueryHelpers.AddQueryString("", queryString);
+            context.RedirectUri = builder.ToString();
+        }
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
     }
 
     public DiscordOptions WithClaims(string[] scopes)
