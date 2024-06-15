@@ -44,17 +44,29 @@ public class DiscordOptions : OAuthOptions
         // authorisation code until PKCE. This is necessary here
         // as HTTPS may be configured at the load balancer.
 
-        var builder = new UriBuilder(context.RedirectUri);
-        var queryString = QueryHelpers.ParseQuery(builder.Query);
-        var redirectUriExists = queryString.TryGetValue("redirect_uri", out var redirectUriStr);
+        var authUriBuilder = new UriBuilder(context.RedirectUri);
+        var authQueryString = QueryHelpers.ParseQuery(authUriBuilder.Query);
+        var redirectUriExists = authQueryString.TryGetValue("redirect_uri", out var redirectUriStr);
         if (redirectUriExists)
         {
+            // change redirect uri query string
             var redirectUri = new UriBuilder(redirectUriStr!);
             redirectUri.Scheme = "https";
             redirectUri.Port = -1;
-            queryString["redirect_uri"] = redirectUri.ToString();
-            builder.Query = QueryHelpers.AddQueryString("", queryString);
-            context.RedirectUri = builder.ToString();
+            var newRedirectUriStr = redirectUri.ToString();
+            if (redirectUriStr != newRedirectUriStr)
+            {
+                authQueryString["redirect_uri"] = newRedirectUriStr;
+                
+                // update state query string to match
+                var state = authQueryString["state"];
+                var stateProperties = context.Options.StateDataFormat.Unprotect(state);
+                stateProperties.RedirectUri = newRedirectUriStr;
+                authQueryString["state"] = context.Options.StateDataFormat.Protect(stateProperties);
+                    
+                authUriBuilder.Query = QueryHelpers.AddQueryString("", authQueryString);
+                context.RedirectUri = authUriBuilder.ToString();
+            }
         }
         context.Response.Redirect(context.RedirectUri);
         return Task.CompletedTask;
