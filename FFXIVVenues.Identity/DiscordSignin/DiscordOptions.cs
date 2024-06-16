@@ -33,43 +33,6 @@ public class DiscordOptions : OAuthOptions
             $"https://id.ffxivvenues.com/profile");
         ClaimActions.MapCustomJson(ConnectClaims.Picture, ClaimValueTypes.String, e =>
             $"https://cdn.discordapp.com/avatars/{e.GetString("id")}/{e.GetString("avatar")}.jpg");
-
-        this.Events.OnRedirectToAuthorizationEndpoint += OnEventsOnRedirectToAuthorizationEndpoint;
-    }
-
-    private Task OnEventsOnRedirectToAuthorizationEndpoint(RedirectContext<OAuthOptions> context)
-    {
-        // Ensure redirect url is always HTTPS to protect the
-        // authorisation code until PKCE. This is necessary here
-        // authorisation code until PKCE. This is necessary here
-        // as HTTPS may be configured at the load balancer.
-
-        var authUriBuilder = new UriBuilder(context.RedirectUri);
-        var authQueryString = QueryHelpers.ParseQuery(authUriBuilder.Query);
-        var redirectUriExists = authQueryString.TryGetValue("redirect_uri", out var redirectUriStr);
-        if (redirectUriExists)
-        {
-            // change redirect uri query string
-            var redirectUri = new UriBuilder(redirectUriStr!);
-            redirectUri.Scheme = "https";
-            redirectUri.Port = -1;
-            var newRedirectUriStr = redirectUri.ToString();
-            if (redirectUriStr != newRedirectUriStr)
-            {
-                authQueryString["redirect_uri"] = newRedirectUriStr;
-                
-                // update state query string to match
-                var state = authQueryString["state"];
-                var stateProperties = context.Options.StateDataFormat.Unprotect(state);
-                stateProperties.RedirectUri = newRedirectUriStr;
-                authQueryString["state"] = context.Options.StateDataFormat.Protect(stateProperties);
-                    
-                authUriBuilder.Query = QueryHelpers.AddQueryString("", authQueryString);
-                context.RedirectUri = authUriBuilder.ToString();
-            }
-        }
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
     }
 
     public DiscordOptions WithClaims(string[] scopes)

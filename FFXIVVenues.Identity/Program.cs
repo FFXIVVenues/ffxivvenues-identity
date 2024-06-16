@@ -3,6 +3,7 @@ using FFXIVVenues.Identity.DiscordSignin;
 using FFXIVVenues.Identity.Models;
 using FFXIVVenues.Identity.OIDC;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -33,6 +34,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddDbContext<IdentityDbContext>(ServiceLifetime.Singleton);
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | 
+                               ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 builder.Services
     .AddAuthentication(DiscordOptions.AuthenticationScheme)
     .AddCookie()
@@ -48,14 +56,13 @@ builder.Services
 
 
 var app = builder.Build();
-
+app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
-
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.MapControllers();

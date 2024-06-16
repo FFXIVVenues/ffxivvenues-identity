@@ -2,7 +2,6 @@
 USER $APP_UID
 WORKDIR /app
 
-RUN dotnet dev-certs https
 ENV ASPNETCORE_URLS=https://+:8081
 EXPOSE 8081
 
