@@ -2,10 +2,14 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json.Nodes;
 using FFXIVVenues.Identity.DiscordSignin;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FFXIVVenues.Identity.OIDC;
 
+[ApiController]
+[EnableCors("AllowAll")]
+[Route("[controller]")]
 public class UserController(
     SessionIdentityManager sessionIdentityManager,
     ClientManager clientManager,

@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using FFXIVVenues.Identity.DiscordSignin;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using JsonWebKeySet = FFXIVVenues.Identity.Models.JsonWebKeySet;
@@ -7,6 +8,7 @@ using JsonWebKeySet = FFXIVVenues.Identity.Models.JsonWebKeySet;
 namespace FFXIVVenues.Identity.OIDC;
 
 [ApiController]
+[EnableCors("AllowAll")]
 [Route("[controller]")]
 public class ConnectController(DiscordManager discordManager, ClientManager clientManager, IConfigurationRoot config) : ControllerBase
 {

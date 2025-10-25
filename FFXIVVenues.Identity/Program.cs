@@ -41,6 +41,15 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 builder.Services
     .AddAuthentication(DiscordOptions.AuthenticationScheme)
     .AddCookie()
@@ -52,11 +61,12 @@ builder.Services
         if (scopes is not null) x.WithClaims(scopes);
         var prompt = config.GetValue<string>("Discord:Prompt");
         if (prompt is not null) x.WithPrompt(prompt);
-    });
+    }).Services.AddCors();
 
 
 var app = builder.Build();
 app.UseForwardedHeaders();
+app.UseCors();
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
