@@ -1,4 +1,45 @@
-﻿.authorize-page {
+﻿.current-identity {
+    width: 420px;
+    border: solid 1px #222;
+    border-radius: 10px;
+    padding: 30px;
+    display: flex;
+    align-content: center;
+    margin: 0 auto 15px;
+
+    img {
+        width: 75px;
+        height: 75px;
+        margin-right: 25px;
+        border-radius: 50%;
+    }
+
+    .identity-details {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        
+        .identity-name {
+            font-size: 1.4rem;
+            font-weight: normal;
+        }
+        
+        .identity-username-id {
+            color: gray;
+            font-size: .9em;
+        }
+        
+        .identity-switch {
+            margin-top: 10px;
+            font-size: .9em;
+            color: gray;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    }
+}
+
+.authorize-page {
     width: 420px;
     margin: 0 auto;
     border: solid 1px #222;

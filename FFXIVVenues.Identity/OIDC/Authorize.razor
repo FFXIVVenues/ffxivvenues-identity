@@ -84,43 +84,70 @@
         var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=access_denied" };
         NavigationManager.NavigateTo(uri.ToString());
     }
+
+    private void OnSwitchUser(MouseEventArgs _)
+    {
+        var returnUrl = NavigationManager.Uri;
+        NavigationManager.NavigateTo($"/signout?returnUrl={Uri.EscapeDataString(returnUrl)}", forceLoad: true);
+    }
 }
 
 <PageTitle>Authorize</PageTitle>
 
+<div class="current-identity">
+    @{
+        var avatar = SessionIdentityManager.GetClaimValue(ConnectClaims.Picture);
+        if (avatar is not null)
+        {
+            <img class="identity-avatar" src="@avatar" alt="Avatar"/>
+        }
+    }
+
+    <div class="identity-details">
+        <div class="identity-name">@SessionIdentityManager.GetClaimValue(ConnectClaims.Name)</div>
+        <div class="identity-username-id">
+            @SessionIdentityManager.GetClaimValue(ConnectClaims.PreferredUsername)
+            (@SessionIdentityManager.GetClaimValue(ConnectClaims.Sub))
+        </div>
+        <a class="identity-switch" @onclick="OnSwitchUser">Switch user</a>
+    </div>
+    
+</div>
+        
 @if (Client is not null)
 {
-<div class="authorize-page">
-    <heading>
-        <img src="@Client.ClientIcon" alt="Icon for @Client.ClientName}"/>
-        <h1><strong>@Client.ClientName</strong><br/> requests access to your identity</h1>
-    </heading>
-    
-    @Client.ClientName requests access to:
-    <ul>
-    @foreach (var scope in this.Scopes!)
-    {
-        <li> 
-            <strong>
-                @(scope.Name switch
-                     {
-                         "openid" => "Your discord user id",
-                         "profile" => "Your name and avatar",
-                         "email" => "Your email address",
-                         "roles" => "Your roles"
-                     }
-                )
-            </strong>
-            <p>@scope.Justification</p>
-        </li>
-    }
-    </ul>
+    <div class="authorize-page">
+        
+        <heading>
+            <img src="@Client.ClientIcon" alt="Icon for @Client.ClientName}"/>
+            <h1><strong>@Client.ClientName</strong><br/> requests access to your identity</h1>
+        </heading>
 
-    <div class="response-buttons">
-        <Button OnClick="OnAllowClick">Allow</Button>
-        <Button OnClick="OnCancelClick">Cancel</Button>
+        @Client.ClientName requests access to:
+        <ul>
+            @foreach (var scope in this.Scopes!)
+            {
+                <li>
+                    <strong>
+                        @(scope.Name switch
+                            {
+                                "openid" => "Your discord user id",
+                                "profile" => "Your name and avatar",
+                                "email" => "Your email address",
+                                "roles" => "Your roles"
+                            }
+                        )
+                    </strong>
+                    <p>@scope.Justification</p>
+                </li>
+            }
+        </ul>
+
+        <div class="response-buttons">
+            <Button OnClick="OnAllowClick">Allow</Button>
+            <Button OnClick="OnCancelClick">Cancel</Button>
+        </div>
     </div>
-</div>
 }
 else
 {

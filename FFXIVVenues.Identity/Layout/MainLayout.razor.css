@@ -2,10 +2,14 @@
     margin: 50px auto;
     width: 100vw;
     max-width: 500px;
-    text-align: left;
+    text-align: center;
+    
+    .content {
+        text-align: left;
+    }
 
     .logo {
         margin-bottom: 50px;
-        width: 100%;
+        width: 80%;
     }
 }

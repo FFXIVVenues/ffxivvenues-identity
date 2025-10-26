@@ -1,0 +1,23 @@
+﻿@page "/signout"
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject NavigationManager NavigationManager
+@code {
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContext is not null)
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        
+        var url = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
+        NavigationManager.NavigateTo(url, forceLoad: true);
+    }
+
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+}
+
+<PageTitle>Signing out...</PageTitle>
+<p>Signing out...</p>

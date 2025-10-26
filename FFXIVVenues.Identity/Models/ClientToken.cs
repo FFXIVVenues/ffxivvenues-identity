@@ -11,6 +11,6 @@ public class ClientToken
     public required string[] Scopes { get; init; } 
     public required long UserId { get; init; }
     [MaxLength(32)] public required string RefreshToken { get; init; }
-    [MaxLength(16)] public required string ClientId { get; init; } 
+    [MaxLength(32)] public required string ClientId { get; init; } 
     public required DateTimeOffset Expiry { get; init; }
 }

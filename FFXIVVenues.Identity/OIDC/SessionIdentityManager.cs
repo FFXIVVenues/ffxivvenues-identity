@@ -1,5 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Security.Principal;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace FFXIVVenues.Identity.OIDC;
 
@@ -19,6 +21,12 @@ public class SessionIdentityManager(IHttpContextAccessor httpContextAccessor)
         return httpContextAccessor.HttpContext.User.Identity;
     }
 
+    public async Task Logout()
+    {
+        if (httpContextAccessor.HttpContext is not null)
+            await httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    }
+    
     public Claim? GetClaim(string claimType)
     {
         if (httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated != true)
