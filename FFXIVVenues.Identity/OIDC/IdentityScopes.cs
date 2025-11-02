@@ -5,6 +5,7 @@ public static class IdentityScopes
     public const string OpenId = "openid";
     public const string Profile = "profile";
     public const string Email = "email";
+    public const string EmailFake = "email_fake";
     public const string EmailVerification = "email_verification";
     public const string MfaStatus = "mfa_status";
     public const string Roles = "roles";
@@ -29,6 +30,7 @@ public static class IdentityScopes
             OpenId =>  [ ConnectClaims.Sub ],
             Profile=>  [ConnectClaims.Name, ConnectClaims.Nickname, ConnectClaims.PreferredUsername, ConnectClaims.Picture, ConnectClaims.Profile ],
             Email => [ ConnectClaims.Email, ConnectClaims.EmailVerified ],
+            EmailFake => [ ConnectClaims.EmailFake ],
             EmailVerification => [ ConnectClaims.EmailVerified ],
             MfaStatus => [ ConnectClaims.MfaEnabled ],
             Roles => [],

@@ -127,6 +127,9 @@
         <ul>
             @foreach (var scope in this.Scopes!)
             {
+                // Don't need to consent for fakes
+                if (scope.Name == "email_fake")
+                    continue;
                 <li>
                     <strong>
                         @(scope.Name switch
@@ -134,6 +137,8 @@
                                 "openid" => "Your discord user id",
                                 "profile" => "Your name and avatar",
                                 "email" => "Your email address",
+                                "email_verification" => "Your email verification status",
+                                "mfa_status" => "Your multifactor authentication status",
                                 "roles" => "Your roles"
                             }
                         )

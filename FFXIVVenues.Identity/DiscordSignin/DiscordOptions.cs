@@ -31,6 +31,8 @@ public class DiscordOptions : OAuthOptions
         ClaimActions.MapJsonKey(ConnectClaims.MfaEnabled, "mfa_enabled", ClaimValueTypes.Boolean);
         ClaimActions.MapCustomJson(ConnectClaims.Profile, ClaimValueTypes.String, e =>
             $"https://id.ffxivvenues.com/profile");
+        ClaimActions.MapCustomJson(ConnectClaims.EmailFake, ClaimValueTypes.String, e =>
+            $"{e.GetString("id")}@id.ffxivvenues.com");
         ClaimActions.MapCustomJson(ConnectClaims.Picture, ClaimValueTypes.String, e =>
             $"https://cdn.discordapp.com/avatars/{e.GetString("id")}/{e.GetString("avatar")}.jpg");
     }

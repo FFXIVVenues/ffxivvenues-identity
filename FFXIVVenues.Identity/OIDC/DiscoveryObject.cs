@@ -60,7 +60,9 @@ public class DiscoveryObject(string rootUri)
         "nickname",
         "preferred_username",
         "email",
+        "email_fake",
         "email_verified",
+        "mfa_enabled",
         "profile",
         "picture"
     ];
