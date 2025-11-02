@@ -20,9 +20,9 @@ public class UserController(
     [HttpPost("/@me")]
     public async Task<ActionResult<JsonObject>> Me()
     {
-        var claims = sessionIdentityManager.GetAllClaims();
+        IEnumerable<Claim> claims = sessionIdentityManager.GetAllClaims();
         if (claims is not null)
-            return this.ClaimsToObject(claims);
+            return ClaimsToObject(claims);
         
         var accessToken = this.HttpContext.Request.Headers.Authorization
             .Select(a => AuthenticationHeaderValue.TryParse(a, out var val) ? val : null)
@@ -36,15 +36,18 @@ public class UserController(
             return Unauthorized();
 
         claims = await discordManager.GetAllClaimsAsync(verifiedToken.UserId);
-        return this.ClaimsToObject(claims);
+        var claimsAllowed = IdentityScopes.GetAllowedClaims(verifiedToken.Scopes);
+        claims = claims.Where(c => claimsAllowed.Contains(c.Type));
+        
+        return ClaimsToObject(claims);
     }
-
-    private ActionResult<JsonObject> ClaimsToObject(Claim[] claims)
+    
+    private static ActionResult<JsonObject> ClaimsToObject(IEnumerable<Claim> claims)
     {
         var json = new JsonObject();
         foreach (var claim in claims)
             json.Add(claim.Type, claim.Value);
         return json;
     }
-        
+
 }
