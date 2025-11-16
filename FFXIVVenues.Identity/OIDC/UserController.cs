@@ -36,8 +36,7 @@ public class UserController(
             return Unauthorized();
 
         claims = await discordManager.GetAllClaimsAsync(verifiedToken.UserId);
-        var claimsAllowed = IdentityScopes.GetAllowedClaims(verifiedToken.Scopes);
-        claims = claims.Where(c => claimsAllowed.Contains(c.Type));
+        claims = claims.FilterToScopes(verifiedToken.Scopes);
         
         return ClaimsToObject(claims);
     }

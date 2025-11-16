@@ -1,4 +1,6 @@
-﻿namespace FFXIVVenues.Identity.OIDC;
+﻿using System.Security.Claims;
+
+namespace FFXIVVenues.Identity.OIDC;
 
 public static class IdentityScopes
 {
@@ -10,7 +12,7 @@ public static class IdentityScopes
     public const string MfaStatus = "mfa_status";
     public const string Roles = "roles";
     
-    public static string[] GetAllowedClaims(string[] scopes)
+    public static string[] GetAllowedClaimTypes(IEnumerable<string> scopes)
     {
         var allowedClaims = new List<string>()
         {
@@ -28,7 +30,7 @@ public static class IdentityScopes
         scope switch
         {
             OpenId =>  [ ConnectClaims.Sub ],
-            Profile=>  [ConnectClaims.Name, ConnectClaims.Nickname, ConnectClaims.PreferredUsername, ConnectClaims.Picture, ConnectClaims.Profile ],
+            Profile =>  [ConnectClaims.Name, ConnectClaims.Nickname, ConnectClaims.PreferredUsername, ConnectClaims.Picture, ConnectClaims.Profile ],
             Email => [ ConnectClaims.Email, ConnectClaims.EmailVerified ],
             EmailFake => [ ConnectClaims.EmailFake ],
             EmailVerification => [ ConnectClaims.EmailVerified ],
@@ -36,5 +38,27 @@ public static class IdentityScopes
             Roles => [],
             _ => []
         };
+    
+    public static string[] GetClaimFakeTargets(string claim) =>
+        claim switch
+        {
+            ConnectClaims.EmailFake =>  [ ConnectClaims.Email ],
+            _ => []
+        };
 
+    public static Claim[] FilterToScopes(this IEnumerable<Claim> claims, IEnumerable<string> scopes)
+    {
+        var claimsAllowed = GetAllowedClaimTypes(scopes);
+        var newClaims = claims.Where(c => claimsAllowed.Contains(c.Type)).ToList();
+        // ReSharper disable PossibleMultipleEnumeration
+        foreach (var newClaim in newClaims.ToList())
+        foreach (var fakeTarget in GetClaimFakeTargets(newClaim.Type))
+        {
+            if (newClaims.All(c => c.Type != fakeTarget))
+                newClaims.Add(new Claim(fakeTarget, newClaim.Value));
+        }
+
+        return newClaims.ToArray();
+        // ReSharper restore PossibleMultipleEnumeration
+    }
 }
