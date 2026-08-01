@@ -1,8 +1,9 @@
-﻿using System.Security.Cryptography;
-using FFXIVVenues.Identity.DiscordSignin;
+﻿using FFXIVVenues.Identity.DiscordSignin;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
+using System.Text;
 using JsonWebKeySet = FFXIVVenues.Identity.Models.JsonWebKeySet;
 
 namespace FFXIVVenues.Identity.OIDC;
@@ -15,7 +16,7 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
     
     [HttpGet("/.well-known/openid-configuration")]
     public ActionResult<DiscoveryObject> Discovery() =>
-        new DiscoveryObject(this.HttpContext.Request.Host.ToString());
+        new DiscoveryObject($"{Request.Scheme}://{Request.Host}");
 
     [HttpPost("/connect/token")]
     [ResponseCache(NoStore = true)]
@@ -27,10 +28,24 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
         [FromForm(Name = "redirect_uri")] string? redirectUri,
         [FromForm(Name = "grant_type")] string grantType)
     {
+
+        var authHeader = Request.Headers.Authorization.ToString();
+        if (authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+        {
+            var encoded = authHeader["Basic ".Length..].Trim();
+            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+            var split = decoded.IndexOf(':');
+            if (split > 0)
+            {
+                clientId = Uri.UnescapeDataString(decoded[..split]);
+                clientSecret = Uri.UnescapeDataString(decoded[(split + 1)..]);
+            }
+        }
+
         if (grantType == "authorization_code")
             return await this.AuthorizationCode(code!, clientId!, clientSecret!, redirectUri!);
         else if (grantType == "refresh_token")
-            return await this.RefreshToken(refreshToken, clientId, clientId);
+            return await this.RefreshToken(refreshToken, clientId, clientSecret);
         else
             return BadRequest("Grant type is invalid");
     }
@@ -63,7 +78,7 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
         var accessToken = await clientManager.CreateAccessTokenAsync(client.ClientId, authCode.UserId, authCode.Scopes);
         var claims = await discordManager.GetAllClaimsAsync(authCode.UserId);
         claims = clientManager.FilterClaimsToScopes(authCode.Scopes, claims);
-        var idToken = clientManager.GenerateIdToken(client.ClientId, claims, authCode.Nonce);
+        var idToken = clientManager.GenerateIdToken(client.ClientId, claims, $"{Request.Scheme}://{Request.Host}", authCode.Nonce);
         return new TokenResponse(idToken, accessToken.AccessToken, accessToken.RefreshToken, (int) (accessToken.Expiry - DateTimeOffset.UtcNow).TotalSeconds);
     }
 
@@ -98,9 +113,9 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
         if (publicKey is null)
             return new JsonWebKeySet([]);
 
-        var rsaProvider = new RSACryptoServiceProvider();
+        var rsaProvider = RSA.Create();
         rsaProvider.ImportFromPem(publicKey);
-        var keyObj = new RsaSecurityKey(rsaProvider);
+        var keyObj = new RsaSecurityKey(rsaProvider) { KeyId = "ffxivvenues-signing-key" };
 
         return new JsonWebKeySet([JsonWebKeyConverter.ConvertFromRSASecurityKey(keyObj)]);
     }

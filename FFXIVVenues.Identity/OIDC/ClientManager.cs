@@ -51,16 +51,14 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
     public AuthorizationCode? ResolveAuthorizationCode(string code) =>
         this._authStore.TryRemove(code, out var authCode) ? authCode : null;
 
-    public string GenerateIdToken(string clientId, Claim[] claims, string? nonce = null)
+    public string GenerateIdToken(string clientId, Claim[] claims, string issuer, string? nonce = null)
     {
         var keyPath = config.GetValue("Signing:PrivateKeyPath", "config/private.pem");
         var key = File.ReadAllText(keyPath);
-        var rsaProvider = new RSACryptoServiceProvider();
+        var rsaProvider = RSA.Create();
         rsaProvider.ImportFromPem(key);
-
-        var keyObj = new RsaSecurityKey(rsaProvider);
-
-        const string issuer = "id.ffxivvenues.com";
+        var keyObj = new RsaSecurityKey(rsaProvider) { KeyId = "ffxivvenues-signing-key" };
+        
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(180);
 

@@ -2,25 +2,25 @@
 
 namespace FFXIVVenues.Identity.OIDC;
 
-public class DiscoveryObject(string rootUri)
+public class DiscoveryObject(string issuer)
 {
     [JsonPropertyName("issuer")] 
-    public string Issuer { get; set; } = $"{rootUri}";
+    public string Issuer { get; set; } = issuer;
 
     [JsonPropertyName("authorization_endpoint")]
-    public string AuthorizationEndpoint { get; set; } = $"https://{rootUri}/connect/authorize";
+    public string AuthorizationEndpoint { get; set; } = $"{issuer}/connect/authorize";
 
     [JsonPropertyName("token_endpoint")] 
-    public string TokenEndpoint { get; set; } = $"https://{rootUri}/connect/token";
+    public string TokenEndpoint { get; set; } = $"{issuer}/connect/token";
 
     [JsonPropertyName("userinfo_endpoint")]
-    public string UserInfoEndpoint { get; set; } = $"https://{rootUri}/@me";
+    public string UserInfoEndpoint { get; set; } = $"{issuer}/@me";
 
     [JsonPropertyName("revocation_endpoint")]
-    public string RevocationEndpoint { get; set; } = $"https://{rootUri}/connect/revoke";
+    public string RevocationEndpoint { get; set; } = $"{issuer}/connect/revoke";
 
     [JsonPropertyName("jwks_uri")] 
-    public string? JwksUri { get; set; } = $"https://{rootUri}/connect/keys";
+    public string? JwksUri { get; set; } = $"{issuer}/connect/keys";
 
     public static string[] ResponseTypesSupportedStatic = [ "code", /*"token", "id_token" */];
     [JsonPropertyName("response_types_supported")]
