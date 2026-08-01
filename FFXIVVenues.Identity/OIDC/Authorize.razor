@@ -8,7 +8,7 @@
 @inject SessionIdentityManager SessionIdentityManager;
 
 @code {
-    
+
     [SupplyParameterFromQuery(Name = "client_id")]
     public required string ClientId { get; set; }
     [SupplyParameterFromQuery(Name = "redirect_uri")]
@@ -30,13 +30,13 @@
             NavigationManager.NavigateTo("/error?msgkey=invalid_client");
         if (RedirectUri is not { Length: > 0 })
             NavigationManager.NavigateTo("/error?msgkey=invalid_redirect");
-        
+
         var client = this.ClientManager.GetClient(ClientId!);
         if (client is null)
             NavigationManager.NavigateTo("/error?msgkey=invalid_client");
         if (!client!.RedirectUris.Contains(RedirectUri))
             NavigationManager.NavigateTo("/error?msgkey=invalid_redirect");
-        
+
         var unsupported = this.ResponseType?.Split(" ")
             .Any(s => !DiscoveryObject.ResponseTypesSupportedStatic.Contains(s));
         if (ResponseType is not { Length: > 0 } || unsupported is true)
@@ -44,19 +44,20 @@
             var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=unsupported_response_type" };
             NavigationManager.NavigateTo(uri.ToString());
         }
-        
+
         if (Scope is not { Length: > 0 } || State is not {Length: > 0})
         {
             var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=invalid_request" };
             NavigationManager.NavigateTo(uri.ToString());
         }
-        
+
         var scopesRequested = Scope?.Split(" ") ?? Array.Empty<string>();
-        Scopes = client.Scopes.Where(s => scopesRequested.Contains(s.Name)).ToArray();
-        if (scopesRequested.Length > Scopes.Length)
+        Scopes = IdentityScopes.GetRequestedScopesFromClient(client, scopesRequested);
+        if (Scopes is not { Length : >0 })
         {
             var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&error=invalid_scope" };
             NavigationManager.NavigateTo(uri.ToString());
+            return;
         }
         
         var userId = SessionIdentityManager.GetClaimValue(ConnectClaims.Sub)!;

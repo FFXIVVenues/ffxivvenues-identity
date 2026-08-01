@@ -31,7 +31,7 @@ public class UserController(
         if (accessToken is null)
             return Unauthorized();
         
-        var verifiedToken = await clientManager.GetAccessTokenAsync(accessToken);
+        var verifiedToken = await clientManager.GetClientTokenAsync(accessToken);
         if (verifiedToken is null || verifiedToken.Expiry < DateTimeOffset.UtcNow)
             return Unauthorized();
 

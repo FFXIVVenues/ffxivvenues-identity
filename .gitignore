@@ -7,3 +7,6 @@ riderModule.iml
 
 .env
 config/
+.vs/
+*.csproj.user
+*.Dotsettings.user

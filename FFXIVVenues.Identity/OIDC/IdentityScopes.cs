@@ -26,6 +26,24 @@ public static class IdentityScopes
         return allowedClaims.Distinct().ToArray();
     }
 
+    public static ClientScope[] GetRequestedScopesFromClient(Client client, string[] scopes)
+    {
+        var resolvesScopes = new List<ClientScope>();
+        foreach (var scope in scopes)
+        {
+            var clientScopeFound = client.Scopes.FirstOrDefault(cs => cs.Name == scope);
+            if (clientScopeFound is null && scope == IdentityScopes.Email)
+            {
+                var fakeScope = client.Scopes.FirstOrDefault(cs => cs.Name == IdentityScopes.EmailFake);
+                if (fakeScope is not null) clientScopeFound = fakeScope;
+            }
+            if (clientScopeFound is null)
+                return [];
+            resolvesScopes.Add(clientScopeFound);
+        }
+        return resolvesScopes.ToArray();
+    }
+
     public static string[] GetAllowedClaimsForScope(string scope) =>
         scope switch
         {

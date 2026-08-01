@@ -99,7 +99,7 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
     public Task<ClientToken?> GetAccessTokenByRefreshAsync(string refreshToken) =>
         db.ClientTokens.FirstOrDefaultAsync(t => t.RefreshToken == refreshToken);
     
-    public ValueTask<ClientToken?> GetAccessTokenAsync(string accessToken) =>
+    public ValueTask<ClientToken?> GetClientTokenAsync(string accessToken) =>
         db.ClientTokens.FindAsync(accessToken);
 
     public async Task<ClientToken> RefreshAccessTokenAsync(ClientToken token)
