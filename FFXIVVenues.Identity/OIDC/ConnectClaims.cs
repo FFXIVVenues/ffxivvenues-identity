@@ -6,6 +6,8 @@ public static class ConnectClaims
     public const string Aud = "aud";
     public const string Exp = "exp";
     public const string Iat = "iat";
+
+    public const string Nonce = "nonce";
     
     public const string Sub = "sub";
     public const string Name = "name";

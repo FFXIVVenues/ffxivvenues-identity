@@ -28,14 +28,14 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
         [FromForm(Name = "grant_type")] string grantType)
     {
         if (grantType == "authorization_code")
-            return await this.AuthorizationCode(code!, clientId, clientSecret, redirectUri!);
+            return await this.AuthorizationCode(code!, clientId!, clientSecret!, redirectUri!);
         else if (grantType == "refresh_token")
             return await this.RefreshToken(refreshToken, clientId, clientId);
         else
             return BadRequest("Grant type is invalid");
     }
 
-    private async Task<ActionResult<TokenResponse>> AuthorizationCode(string code, string? clientId, string? clientSecret, string redirectUri)
+    private async Task<ActionResult<TokenResponse>> AuthorizationCode(string code, string clientId, string clientSecret, string redirectUri)
     {
         if (string.IsNullOrWhiteSpace(code))
             return Unauthorized("Authorization code is invalid");
@@ -44,23 +44,26 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
         if (authCode is null || authCode.Expiry < DateTimeOffset.Now)
             return Unauthorized("Authorization code is invalid");
 
-        if (clientId is not null && clientId != authCode.ClientId)
+        if (clientId is null)
+            return Unauthorized("Client ID is invalid");
+
+        if (clientId != authCode.ClientId)
             return Unauthorized("Client ID is invalid");
         
         var client = clientManager.GetClient(authCode.ClientId);
         if (client is null)
             return Unauthorized("Client ID is invalid");
 
-        if (clientSecret is not null && clientSecret != client.ClientSecret)
+        if (clientSecret != client.ClientSecret)
             return Unauthorized("Client secret is invalid");
         
-        if (! client.RedirectUris.Contains(redirectUri))
+        if (authCode.RedirectUri != redirectUri)
             return Unauthorized("Redirect URI is invalid");
 
         var accessToken = await clientManager.CreateAccessTokenAsync(client.ClientId, authCode.UserId, authCode.Scopes);
         var claims = await discordManager.GetAllClaimsAsync(authCode.UserId);
         claims = clientManager.FilterClaimsToScopes(authCode.Scopes, claims);
-        var idToken = clientManager.GenerateIdToken(client.ClientId, claims);
+        var idToken = clientManager.GenerateIdToken(client.ClientId, claims, authCode.Nonce);
         return new TokenResponse(idToken, accessToken.AccessToken, accessToken.RefreshToken, (int) (accessToken.Expiry - DateTimeOffset.UtcNow).TotalSeconds);
     }
 

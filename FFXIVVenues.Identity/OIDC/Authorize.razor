@@ -19,6 +19,8 @@
     public required string Scope { get; set; }
     [SupplyParameterFromQuery(Name = "state")]
     public required string State { get; set; }
+    [SupplyParameterFromQuery(Name = "nonce")]
+    public string? Nonce { get; set; }
 
     private Client Client { get; set; } = null!;
     private ClientScope[]? Scopes { get; set; }
@@ -75,7 +77,7 @@
 
     private void OnAllowClick(MouseEventArgs _)
     {
-        var code = ClientManager.CreateAuthorizationCode(ClientId, UserId, RedirectUri, Scopes);
+        var code = ClientManager.CreateAuthorizationCode(ClientId, UserId, RedirectUri, Scopes!, Nonce);
         var uri = new UriBuilder(RedirectUri) { Query = $"state={State}&code={code.Code}" };
         NavigationManager.NavigateTo(uri.ToString());
     }

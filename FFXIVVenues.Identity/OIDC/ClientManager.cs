@@ -39,10 +39,10 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
     public Client? GetClient(string clientId) =>
         this._clients.FirstOrDefault(c => c.ClientId == clientId);
 
-    public AuthorizationCode CreateAuthorizationCode(string clientId, long userId, string redirectUri, IEnumerable<ClientScope> scopes)
+    public AuthorizationCode CreateAuthorizationCode(string clientId, long userId, string redirectUri, IEnumerable<ClientScope> scopes, string? nonce = null)
     {
         var authCode = new AuthorizationCode(IdHelper.GenerateId(32), clientId, userId,
-            DateTimeOffset.Now + AuthCodeExpiry, redirectUri, scopes.Select(s => s.Name).ToArray());
+            DateTimeOffset.Now + AuthCodeExpiry, redirectUri, scopes.Select(s => s.Name).ToArray(), nonce);
         this._authStore.TryAdd(authCode.Code, authCode);
         Task.Delay(AuthCodeExpiry).ContinueWith(_ => this._authStore.TryRemove(authCode.Code, out var _));
         return authCode;
@@ -51,7 +51,7 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
     public AuthorizationCode? ResolveAuthorizationCode(string code) =>
         this._authStore.TryRemove(code, out var authCode) ? authCode : null;
 
-    public string GenerateIdToken(string clientId, Claim[] claims)
+    public string GenerateIdToken(string clientId, Claim[] claims, string? nonce = null)
     {
         var keyPath = config.GetValue("Signing:PrivateKeyPath", "config/private.pem");
         var key = File.ReadAllText(keyPath);
@@ -64,7 +64,11 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(180);
 
-        var payload = new JwtPayload(issuer, clientId, claims, now, expires, now);
+        var resolvedClaims = claims;
+        if (nonce != null)
+            resolvedClaims = claims.Append(new Claim(ConnectClaims.Nonce, nonce)).ToArray();
+
+        var payload = new JwtPayload(issuer, clientId, resolvedClaims, now, expires, now);
 
         // Use RSA SHA256 for signing credentials
         var header = new JwtHeader(new SigningCredentials(keyObj, SecurityAlgorithms.RsaSha256));
