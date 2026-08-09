@@ -19,8 +19,8 @@ public class DiscoveryObject(string issuer)
     [JsonPropertyName("revocation_endpoint")]
     public string RevocationEndpoint { get; set; } = $"{issuer}/connect/revoke";
 
-    [JsonPropertyName("jwks_uri")] 
-    public string? JwksUri { get; set; } = $"{issuer}/connect/keys";
+    [JsonPropertyName("jwks_uri")]
+    public string? JwksUri { get; set; } = $"{issuer}/.well-known/jwks.json";
 
     public static string[] ResponseTypesSupportedStatic = [ "code", /*"token", "id_token" */];
     [JsonPropertyName("response_types_supported")]
@@ -30,7 +30,7 @@ public class DiscoveryObject(string issuer)
     public string[] SubjectTypesSupported { get; set; } = [ "public" ];
 
     [JsonPropertyName("id_token_signing_alg_values_supported")]
-    public string[] IdTokenSigningAlgValuesSupported { get; set; } = ["RS256"];
+    public string[] IdTokenSigningAlgValuesSupported { get; set; } = ["EdDSA"];
 
     [JsonPropertyName("scopes_supported")]
     public string[] ScopesSupported { get; set; } =

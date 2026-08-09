@@ -1,8 +1,7 @@
 ﻿using FFXIVVenues.Identity.DiscordSignin;
+using FFXIVVenues.Identity.Helpers;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Cryptography;
 using System.Text;
 using JsonWebKeySet = FFXIVVenues.Identity.Models.JsonWebKeySet;
 
@@ -11,7 +10,7 @@ namespace FFXIVVenues.Identity.OIDC;
 [ApiController]
 [EnableCors("AllowAll")]
 [Route("[controller]")]
-public class ConnectController(DiscordManager discordManager, ClientManager clientManager, IConfigurationRoot config) : ControllerBase
+public class ConnectController(DiscordManager discordManager, ClientManager clientManager, IConfigurationRoot config, SigningKeyLoader signingKeyLoader) : ControllerBase
 {
     
     [HttpGet("/.well-known/openid-configuration")]
@@ -105,7 +104,7 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
         return new TokenResponse(null, refreshedToken.AccessToken, refreshedToken.RefreshToken, (refreshedToken.Expiry - DateTimeOffset.UtcNow).Seconds);
     }
 
-    [HttpGet("/connect/keys")]
+    [HttpGet("/.well-known/jwks.json")]
     public ActionResult<JsonWebKeySet> Keys()
     {
         var publicKeyPath = config.GetValue<string>("Signing:PublicKeyPath", "config/public.pub")!;
@@ -113,11 +112,7 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
         if (publicKey is null)
             return new JsonWebKeySet([]);
 
-        var rsaProvider = RSA.Create();
-        rsaProvider.ImportFromPem(publicKey);
-        var keyObj = new RsaSecurityKey(rsaProvider) { KeyId = "ffxivvenues-signing-key" };
-
-        return new JsonWebKeySet([JsonWebKeyConverter.ConvertFromRSASecurityKey(keyObj)]);
+        return new JsonWebKeySet([signingKeyLoader.LoadPublicJwk(publicKey)]);
     }
     
 }

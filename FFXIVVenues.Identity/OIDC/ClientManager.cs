@@ -1,8 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FFXIVVenues.Identity.DiscordSignin;
@@ -10,11 +8,12 @@ using FFXIVVenues.Identity.Helpers;
 using FFXIVVenues.Identity.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using ScottBrady.IdentityModel.Crypto;
 using Serilog;
 
 namespace FFXIVVenues.Identity.OIDC;
 
-public class ClientManager(IConfigurationRoot config, DiscordManager discordManager, IdentityDbContext db)
+public class ClientManager(IConfigurationRoot config, DiscordManager discordManager, IdentityDbContext db, SigningKeyLoader signingKeyLoader)
 {
     private static readonly TimeSpan AuthCodeExpiry = TimeSpan.FromSeconds(15);
 
@@ -53,12 +52,10 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
 
     public string GenerateIdToken(string clientId, Claim[] claims, string issuer, string? nonce = null)
     {
-        var keyPath = config.GetValue("Signing:PrivateKeyPath", "config/private.pem");
+        var keyPath = config.GetValue("Signing:PrivateKeyPath", "config/private.pem")!;
         var key = File.ReadAllText(keyPath);
-        var rsaProvider = RSA.Create();
-        rsaProvider.ImportFromPem(key);
-        var keyObj = new RsaSecurityKey(rsaProvider) { KeyId = "ffxivvenues-signing-key" };
-        
+        var keyObj = signingKeyLoader.LoadPrivateKey(key);
+
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(180);
 
@@ -68,8 +65,8 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
 
         var payload = new JwtPayload(issuer, clientId, resolvedClaims, now, expires, now);
 
-        // Use RSA SHA256 for signing credentials
-        var header = new JwtHeader(new SigningCredentials(keyObj, SecurityAlgorithms.RsaSha256));
+        // Use EdDSA (Ed25519) for signing credentials
+        var header = new JwtHeader(new SigningCredentials(keyObj, ExtendedSecurityAlgorithms.EdDsa));
         var idToken = new JwtSecurityToken(header, payload);
 
         var handler = new JwtSecurityTokenHandler();

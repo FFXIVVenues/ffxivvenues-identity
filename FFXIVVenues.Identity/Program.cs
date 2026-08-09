@@ -1,5 +1,6 @@
 using FFXIVVenues.Identity;
 using FFXIVVenues.Identity.DiscordSignin;
+using FFXIVVenues.Identity.Helpers;
 using FFXIVVenues.Identity.Models;
 using FFXIVVenues.Identity.OIDC;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -27,6 +28,7 @@ builder.Services.AddSingleton<ClientManager>();
 builder.Services.AddSingleton<SessionIdentityManager>();
 builder.Services.AddSingleton<DiscordManager>();
 builder.Services.AddSingleton<DiscordOptions>();
+builder.Services.AddSingleton<SigningKeyLoader>();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
