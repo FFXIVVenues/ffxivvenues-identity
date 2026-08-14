@@ -2,6 +2,7 @@
 using FFXIVVenues.Identity.Helpers;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using JsonWebKeySet = FFXIVVenues.Identity.Models.JsonWebKeySet;
 
@@ -107,12 +108,17 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
     [HttpGet("/.well-known/jwks.json")]
     public ActionResult<JsonWebKeySet> Keys()
     {
-        var publicKeyPath = config.GetValue<string>("Signing:PublicKeyPath", "config/public.pub")!;
-        var publicKey = System.IO.File.ReadAllText(publicKeyPath);
-        if (publicKey is null)
-            return new JsonWebKeySet([]);
+        var keys = new List<JsonWebKey>();
 
-        return new JsonWebKeySet([signingKeyLoader.LoadPublicJwk(publicKey)]);
+        var rsaPath = config.GetValue<string>("Signing:Rsa:PublicKeyPath", "config/rsa/public.pub")!;
+        if (System.IO.File.Exists(rsaPath))
+            keys.Add(signingKeyLoader.LoadRsaPublicJwk(System.IO.File.ReadAllText(rsaPath)));
+
+        var edDsaPath = config.GetValue<string>("Signing:Ed25519:PublicKeyPath", "config/ed25519/public.pub")!;
+        if (System.IO.File.Exists(edDsaPath))
+            keys.Add(signingKeyLoader.LoadEdDsaPublicJwk(System.IO.File.ReadAllText(edDsaPath)));
+
+        return new JsonWebKeySet(keys.ToArray());
     }
     
 }

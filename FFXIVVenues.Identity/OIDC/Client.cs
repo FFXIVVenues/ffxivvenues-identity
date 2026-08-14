@@ -10,6 +10,7 @@ public class Client
     public required ClientScope[] Scopes { get; init; }
     public required string[] RedirectUris { get; init; }
     public required AccessControl AccessControl { get; init; }
+    public string? SigningAlgorithm { get; init; } // rsa or ed25519
 }
 
 public class AccessControl

@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using Microsoft.IdentityModel.Tokens;
+using ScottBrady.IdentityModel.Crypto;
+using System.Text.Json.Serialization;
 
 namespace FFXIVVenues.Identity.OIDC;
 
@@ -30,7 +32,7 @@ public class DiscoveryObject(string issuer)
     public string[] SubjectTypesSupported { get; set; } = [ "public" ];
 
     [JsonPropertyName("id_token_signing_alg_values_supported")]
-    public string[] IdTokenSigningAlgValuesSupported { get; set; } = ["EdDSA"];
+    public string[] IdTokenSigningAlgValuesSupported { get; set; } = [SecurityAlgorithms.RsaSha256, ExtendedSecurityAlgorithms.EdDsa];
 
     [JsonPropertyName("scopes_supported")]
     public string[] ScopesSupported { get; set; } =

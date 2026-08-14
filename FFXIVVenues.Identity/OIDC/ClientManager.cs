@@ -52,9 +52,20 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
 
     public string GenerateIdToken(string clientId, Claim[] claims, string issuer, string? nonce = null)
     {
-        var keyPath = config.GetValue("Signing:PrivateKeyPath", "config/private.pem")!;
-        var key = File.ReadAllText(keyPath);
-        var keyObj = signingKeyLoader.LoadPrivateKey(key);
+        var alg = this.GetClient(clientId)?.SigningAlgorithm ?? SecurityAlgorithms.RsaSha256;
+        var credentials = alg.ToLower() switch
+        {
+            "rsa" => new SigningCredentials(
+                signingKeyLoader.LoadRsaPrivateKey(File.ReadAllText(
+                    config.GetValue("Signing:Rsa:PrivateKeyPath", "config/rsa/private.pem")!)),
+                SecurityAlgorithms.RsaSha256),
+            "ed25519" => new SigningCredentials(
+                signingKeyLoader.LoadEdDsaPrivateKey(File.ReadAllText(
+                    config.GetValue("Signing:Ed25519:PrivateKeyPath", "config/ed25519/private.pem")!)),
+                ExtendedSecurityAlgorithms.EdDsa),
+            _ => throw new InvalidOperationException(
+                $"Unsupported signing algorithm '{alg}' for client '{clientId}', use either 'Rsa' or 'Ed25519'.")
+        };
 
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(180);
@@ -65,8 +76,7 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
 
         var payload = new JwtPayload(issuer, clientId, resolvedClaims, now, expires, now);
 
-        // Use EdDSA (Ed25519) for signing credentials
-        var header = new JwtHeader(new SigningCredentials(keyObj, ExtendedSecurityAlgorithms.EdDsa));
+        var header = new JwtHeader(credentials);
         var idToken = new JwtSecurityToken(header, payload);
 
         var handler = new JwtSecurityTokenHandler();

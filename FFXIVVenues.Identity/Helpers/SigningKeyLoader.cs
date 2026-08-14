@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -9,16 +10,17 @@ namespace FFXIVVenues.Identity.Helpers;
 
 public class SigningKeyLoader
 {
-    public const string KeyId = "ffxivvenues-signing-key";
+    public const string EdDsaKeyId = "ffxivvenues-ed25519-key";
+    public const string RsaKeyId = "ffxivvenues-rsa-key";
 
-    public EdDsaSecurityKey LoadPrivateKey(string pem)
+    public EdDsaSecurityKey LoadEdDsaPrivateKey(string pem)
     {
         var d = LoadKey(pem, wantPrivate: true);
         var edDsa = EdDsa.Create(new EdDsaParameters(ExtendedSecurityAlgorithms.Curves.Ed25519) { D = d });
-        return new EdDsaSecurityKey(edDsa) { KeyId = KeyId };
+        return new EdDsaSecurityKey(edDsa) { KeyId = EdDsaKeyId };
     }
 
-    public JsonWebKey LoadPublicJwk(string pem)
+    public JsonWebKey LoadEdDsaPublicJwk(string pem)
     {
         var x = LoadKey(pem, wantPrivate: false);
         return new JsonWebKey
@@ -28,8 +30,27 @@ public class SigningKeyLoader
             X = Base64UrlEncoder.Encode(x),
             Use = "sig",
             Alg = ExtendedSecurityAlgorithms.EdDsa,
-            Kid = KeyId
+            Kid = EdDsaKeyId
         };
+    }
+
+    public RsaSecurityKey LoadRsaPrivateKey(string pem)
+    {
+        var rsa = RSA.Create();
+        rsa.ImportFromPem(pem);
+        return new RsaSecurityKey(rsa) { KeyId = RsaKeyId };
+    }
+
+    public JsonWebKey LoadRsaPublicJwk(string pem)
+    {
+        var rsa = RSA.Create();
+        rsa.ImportFromPem(pem);
+        var jwk = JsonWebKeyConverter.ConvertFromRSASecurityKey(new RsaSecurityKey(rsa));
+        jwk.Use = "sig";
+        jwk.Alg = SecurityAlgorithms.RsaSha256;
+        jwk.Kid = RsaKeyId;
+        jwk.KeyId = RsaKeyId;
+        return jwk;
     }
 
     private byte[] LoadKey(string pem, bool wantPrivate)
