@@ -102,23 +102,16 @@ public class ConnectController(DiscordManager discordManager, ClientManager clie
             return Unauthorized("Client secret is invalid");
 
         var refreshedToken = await clientManager.RefreshAccessTokenAsync(token);
-        return new TokenResponse(null, refreshedToken.AccessToken, refreshedToken.RefreshToken, (refreshedToken.Expiry - DateTimeOffset.UtcNow).Seconds);
+        return new TokenResponse(null, refreshedToken.AccessToken, refreshedToken.RefreshToken, (int) (refreshedToken.Expiry - DateTimeOffset.UtcNow).TotalSeconds);
     }
 
     [HttpGet("/.well-known/jwks.json")]
     public ActionResult<JsonWebKeySet> Keys()
     {
-        var keys = new List<JsonWebKey>();
-
-        var rsaPath = config.GetValue<string>("Signing:Rsa:PublicKeyPath", "config/rsa/public.pub")!;
-        if (System.IO.File.Exists(rsaPath))
-            keys.Add(signingKeyLoader.LoadRsaPublicJwk(System.IO.File.ReadAllText(rsaPath)));
-
-        var edDsaPath = config.GetValue<string>("Signing:Ed25519:PublicKeyPath", "config/ed25519/public.pub")!;
-        if (System.IO.File.Exists(edDsaPath))
-            keys.Add(signingKeyLoader.LoadEdDsaPublicJwk(System.IO.File.ReadAllText(edDsaPath)));
-
-        return new JsonWebKeySet(keys.ToArray());
+        return new JsonWebKeySet([
+            signingKeyLoader.LoadRsaPublicJwk(),
+            signingKeyLoader.LoadEdDsaPublicJwk()
+        ]);
     }
     
 }

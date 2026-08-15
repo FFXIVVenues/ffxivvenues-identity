@@ -8,20 +8,32 @@ using ScottBrady.IdentityModel.Tokens;
 
 namespace FFXIVVenues.Identity.Helpers;
 
-public class SigningKeyLoader
+public class SigningKeyLoader(IConfigurationRoot config)
 {
     public const string EdDsaKeyId = "ffxivvenues-ed25519-key";
     public const string RsaKeyId = "ffxivvenues-rsa-key";
 
-    public EdDsaSecurityKey LoadEdDsaPrivateKey(string pem)
+
+    private RsaSecurityKey? _rsaSecurityKey;
+    private EdDsaSecurityKey? _edDsaSecurityKey;
+
+    public EdDsaSecurityKey LoadEdDsaPrivateKey()
     {
+        if (_edDsaSecurityKey is not null)
+            return _edDsaSecurityKey;
+
+        var pemPath = config.GetValue("Signing:Ed25519:PrivateKeyPath", "config/ed25519/private.pem")!;
+        var pem = File.ReadAllText(pemPath);
         var d = LoadKey(pem, wantPrivate: true);
         var edDsa = EdDsa.Create(new EdDsaParameters(ExtendedSecurityAlgorithms.Curves.Ed25519) { D = d });
-        return new EdDsaSecurityKey(edDsa) { KeyId = EdDsaKeyId };
+        return _edDsaSecurityKey = new EdDsaSecurityKey(edDsa) { KeyId = EdDsaKeyId };
     }
 
-    public JsonWebKey LoadEdDsaPublicJwk(string pem)
+    public JsonWebKey LoadEdDsaPublicJwk()
     {
+        var edDsaPath = config.GetValue<string>("Signing:Ed25519:PublicKeyPath", "config/ed25519/public.pub")!;
+        var pem = System.IO.File.ReadAllText(edDsaPath);
+
         var x = LoadKey(pem, wantPrivate: false);
         return new JsonWebKey
         {
@@ -34,22 +46,29 @@ public class SigningKeyLoader
         };
     }
 
-    public RsaSecurityKey LoadRsaPrivateKey(string pem)
+    public RsaSecurityKey LoadRsaPrivateKey()
     {
+        if (_rsaSecurityKey is not null)
+            return _rsaSecurityKey;
+
+        var pemPath = config.GetValue("Signing:Rsa:PrivateKeyPath", "config/rsa/private.pem")!;
+        var pem = File.ReadAllText(pemPath);
         var rsa = RSA.Create();
         rsa.ImportFromPem(pem);
-        return new RsaSecurityKey(rsa) { KeyId = RsaKeyId };
+        return _rsaSecurityKey = new RsaSecurityKey(rsa) { KeyId = RsaKeyId };
     }
 
-    public JsonWebKey LoadRsaPublicJwk(string pem)
+    public JsonWebKey LoadRsaPublicJwk()
     {
-        var rsa = RSA.Create();
+        var rsaPath = config.GetValue<string>("Signing:Rsa:PublicKeyPath", "config/rsa/public.pub")!;
+        var pem = System.IO.File.ReadAllText(rsaPath);
+
+        using var rsa = RSA.Create();
         rsa.ImportFromPem(pem);
         var jwk = JsonWebKeyConverter.ConvertFromRSASecurityKey(new RsaSecurityKey(rsa));
         jwk.Use = "sig";
         jwk.Alg = SecurityAlgorithms.RsaSha256;
         jwk.Kid = RsaKeyId;
-        jwk.KeyId = RsaKeyId;
         return jwk;
     }
 

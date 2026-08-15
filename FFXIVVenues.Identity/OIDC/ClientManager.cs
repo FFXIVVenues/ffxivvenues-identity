@@ -27,11 +27,11 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
     
     private readonly Client[] _clients = 
         Directory.EnumerateFiles(config.GetValue("Clients:ConfigsPath", "config/")!, "*.client")
-        .AsParallel()
-        .Select(File.ReadAllText)
-        .Select(x => JsonSerializer.Deserialize<Client>(x))
-        .Where(x => x is not null)
-        .ToArray()!;
+            .AsParallel()
+            .Select(File.ReadAllText)
+            .Select(x => JsonSerializer.Deserialize<Client>(x))
+            .Where(x => x is not null)
+            .ToArray()!;
     
     private readonly ConcurrentDictionary<string, AuthorizationCode> _authStore = new();
 
@@ -52,17 +52,13 @@ public class ClientManager(IConfigurationRoot config, DiscordManager discordMana
 
     public string GenerateIdToken(string clientId, Claim[] claims, string issuer, string? nonce = null)
     {
-        var alg = this.GetClient(clientId)?.SigningAlgorithm ?? SecurityAlgorithms.RsaSha256;
-        var credentials = alg.ToLower() switch
+        var alg = this.GetClient(clientId)?.SigningAlgorithm ?? "rsa";
+        var credentials = alg.ToLowerInvariant() switch
         {
-            "rsa" => new SigningCredentials(
-                signingKeyLoader.LoadRsaPrivateKey(File.ReadAllText(
-                    config.GetValue("Signing:Rsa:PrivateKeyPath", "config/rsa/private.pem")!)),
-                SecurityAlgorithms.RsaSha256),
-            "ed25519" => new SigningCredentials(
-                signingKeyLoader.LoadEdDsaPrivateKey(File.ReadAllText(
-                    config.GetValue("Signing:Ed25519:PrivateKeyPath", "config/ed25519/private.pem")!)),
-                ExtendedSecurityAlgorithms.EdDsa),
+            "rsa" or "rs256" => new SigningCredentials(
+                signingKeyLoader.LoadRsaPrivateKey(), SecurityAlgorithms.RsaSha256),
+            "eddsa" or "ed25519" => new SigningCredentials(
+                signingKeyLoader.LoadEdDsaPrivateKey(), ExtendedSecurityAlgorithms.EdDsa),
             _ => throw new InvalidOperationException(
                 $"Unsupported signing algorithm '{alg}' for client '{clientId}', use either 'Rsa' or 'Ed25519'.")
         };
